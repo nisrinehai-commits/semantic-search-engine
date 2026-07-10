@@ -14,8 +14,8 @@ Développer un moteur de recherche sémantique basé sur SBERT (Sentence-BERT) c
 ## Roadmap
 - [x] Setup initial du projet
 - [x] Étape 2 : Ingestion de documents (DOCX, PDF natif, PDF scanné via OCR)
-- [ ] Étape 3 : Génération d'embeddings avec SBERT
-- [ ] V1 : Recherche sémantique par similarité cosinus
+- [x] Étape 3 : Génération d'embeddings avec SBERT
+- [x] V1 : Recherche sémantique par similarité cosinus ✅
 - [ ] V2 : Intégration FAISS pour la recherche vectorielle
 - [ ] V3 : API + interface utilisateur
 - [ ] V4 : Intégration RAG / assistant documentaire
@@ -23,15 +23,34 @@ Développer un moteur de recherche sémantique basé sur SBERT (Sentence-BERT) c
 ## Structure du projet
 \`\`\`
 src/
-├── ingestion/          # Extraction de texte (DOCX, PDF, OCR)
-│   ├── docx_extractor.py
-│   ├── pdf_extractor.py
-│   ├── ocr_extractor.py
-│   └── loader.py        # Orchestrateur (détection format + fallback OCR)
-├── embeddings/          # (à venir) Génération d'embeddings SBERT
-├── search/              # (à venir) Similarité et recherche
+├── ingestion/
+│   ├── docx_extractor.py    # Extraction DOCX
+│   ├── pdf_extractor.py     # Extraction PDF natif
+│   ├── ocr_extractor.py     # Extraction PDF scanné (OCR)
+│   └── loader.py            # Orchestrateur (détection format + fallback OCR)
+├── embeddings/
+│   ├── embedder.py          # Génération d'un embedding SBERT
+│   └── build_index.py       # Indexation en masse (data/processed -> data/embeddings)
+├── search/
+│   └── search_engine.py     # Recherche par similarité cosinus (Top-K)
 └── utils/
 \`\`\`
+
+## Utilisation (pipeline complet)
+\`\`\`bash
+# 1. Extraire le texte des documents (data/raw -> data/processed)
+python -m src.ingestion.loader
+
+# 2. Générer les embeddings (data/processed -> data/embeddings)
+python -m src.embeddings.build_index
+
+# 3. Rechercher (exemple dans le fichier, modifiable)
+python -m src.search.search_engine
+\`\`\`
+
+## Modèle utilisé
+[paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)
+— modèle SBERT multilingue (50+ langues dont le français), vecteurs de dimension 384.
 
 ## Prérequis système (Windows)
 En plus des dépendances Python (\`requirements.txt\`), ce projet nécessite :
