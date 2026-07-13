@@ -15,10 +15,15 @@ Développer un moteur de recherche sémantique basé sur SBERT (Sentence-BERT) c
 - [x] Setup initial du projet
 - [x] Étape 2 : Ingestion de documents (DOCX, PDF natif, PDF scanné via OCR)
 - [x] Étape 3 : Génération d'embeddings avec SBERT
-- [x] V1 : Recherche sémantique par similarité cosinus ✅
-- [ ] V2 : Intégration FAISS pour la recherche vectorielle
+- [x] V1 : Recherche sémantique par similarité cosinus
+- [x] V2 : Intégration FAISS pour la recherche vectorielle ✅
 - [ ] V3 : API + interface utilisateur
 - [ ] V4 : Intégration RAG / assistant documentaire
+
+## Recherche vectorielle
+La recherche s'appuie sur [FAISS](https://github.com/facebookresearch/faiss) (Facebook AI
+Similarity Search), avec un index `IndexFlatIP` sur vecteurs normalisés L2 (équivalent à une
+similarité cosinus, mais optimisé pour passer à l'échelle sur un grand volume de documents).
 
 ## Structure du projet
 \`\`\`

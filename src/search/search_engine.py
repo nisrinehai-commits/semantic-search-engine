@@ -1,13 +1,13 @@
 """
 Moteur de recherche sémantique : compare une requête aux documents indexés
-via la similarité cosinus.
+via FAISS (recherche vectorielle optimisée).
 """
 
 import json
 from pathlib import Path
 
+import faiss
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
 from src.embeddings.embedder import generate_embedding
 
@@ -16,29 +16,30 @@ EMBEDDINGS_DIR = "data/embeddings"
 
 def load_index(embeddings_dir: str = EMBEDDINGS_DIR):
     """
-    Charge la matrice d'embeddings et les métadonnées associées.
+    Charge l'index FAISS et les métadonnées associées.
 
     Returns:
-        Tuple (embeddings_matrix, metadata_list)
+        Tuple (index_faiss, metadata_list)
     """
-    embeddings_path = Path(embeddings_dir) / "embeddings.npy"
+    index_path = Path(embeddings_dir) / "faiss_index.bin"
     metadata_path = Path(embeddings_dir) / "metadata.json"
 
-    if not embeddings_path.exists() or not metadata_path.exists():
+    if not index_path.exists() or not metadata_path.exists():
         raise FileNotFoundError(
             "Index introuvable. Lance d'abord : python -m src.embeddings.build_index"
         )
 
-    embeddings_matrix = np.load(embeddings_path)
+    index = faiss.read_index(str(index_path))
     with open(metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
 
-    return embeddings_matrix, metadata
+    return index, metadata
 
 
 def search(query: str, top_k: int = 3, embeddings_dir: str = EMBEDDINGS_DIR):
     """
-    Recherche les documents les plus pertinents pour une requête donnée.
+    Recherche les documents les plus pertinents pour une requête donnée,
+    via l'index FAISS.
 
     Args:
         query: la requête en langage naturel
@@ -49,19 +50,20 @@ def search(query: str, top_k: int = 3, embeddings_dir: str = EMBEDDINGS_DIR):
         Liste de dicts triés par pertinence décroissante :
         [{"filename": ..., "score": ..., "text_preview": ...}, ...]
     """
-    embeddings_matrix, metadata = load_index(embeddings_dir)
+    index, metadata = load_index(embeddings_dir)
 
-    query_vector = generate_embedding(query).reshape(1, -1)
+    query_vector = generate_embedding(query).astype("float32").reshape(1, -1)
+    faiss.normalize_L2(query_vector)
 
-    similarities = cosine_similarity(query_vector, embeddings_matrix)[0]
-
-    ranked_indices = np.argsort(similarities)[::-1][:top_k]
+    scores, indices = index.search(query_vector, top_k)
 
     results = []
-    for idx in ranked_indices:
+    for score, idx in zip(scores[0], indices[0]):
+        if idx == -1:
+            continue  # FAISS retourne -1 si moins de top_k résultats existent
         results.append({
             "filename": metadata[idx]["filename"],
-            "score": float(similarities[idx]),
+            "score": float(score),
             "text_preview": metadata[idx]["text_preview"],
         })
 
