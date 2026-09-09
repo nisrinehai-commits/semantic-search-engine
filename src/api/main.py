@@ -2,13 +2,14 @@
 API REST du moteur de recherche semantique.
 """
 
-import json
 import base64
 import hmac
+import json
 import os
 import re
-from hashlib import sha256
+from contextlib import asynccontextmanager
 from datetime import datetime
+from hashlib import sha256
 from math import ceil
 from pathlib import Path
 
@@ -16,6 +17,25 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+from src.config import (
+    APP_ALLOWED_ORIGINS,
+    CATEGORY_RULES,
+    EMBEDDINGS_DIR,
+    FRENCH_STOPWORDS,
+    JWT_EXPIRES_SECONDS,
+    JWT_SECRET,
+    METADATA_PATH,
+    PROCESSED_DIR,
+    PUBLIC_READ_USER,
+    RAW_DIR,
+    SUPPORTED_UPLOAD_EXTENSIONS,
+    USERS_PATH,
+    VERSION,
+    WORKFLOW_LOG_PATH,
+    WORKFLOW_STEPS,
+    VERSIONS_PATH,
+)
 
 from src.api.database import (
     connect,
@@ -53,81 +73,35 @@ from src.api.schemas import (
     WorkflowHistoryResponse,
     WorkflowTransitionRequest,
 )
+from src.api.routes import router as api_router
 
-EMBEDDINGS_DIR = "data/embeddings"
-RAW_DIR = "data/raw"
-PROCESSED_DIR = "data/processed"
-METADATA_PATH = "data/metadata/document_metadata.json"
-WORKFLOW_LOG_PATH = "data/metadata/workflow_history.json"
-VERSIONS_PATH = "data/metadata/document_versions.json"
-USERS_PATH = "data/metadata/users.json"
-SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".docx", ".txt"}
-WORKFLOW_STEPS = ["Brouillon", "Soumis", "En validation", "Approuve", "Rejete", "Archive"]
-JWT_SECRET = os.getenv("GED_JWT_SECRET", "change-this-secret-for-production")
-JWT_EXPIRES_SECONDS = int(os.getenv("GED_JWT_EXPIRES_SECONDS", "86400"))
-PUBLIC_READ_USER = {
-    "id": "anonymous",
-    "name": "Visiteur local",
-    "email": "anonymous@local",
-    "role": "Employe",
-    "permissions": ["documents:read", "search:read"],
-}
-FRENCH_STOPWORDS = {
-    "avec", "dans", "des", "du", "elle", "est", "les", "leur", "leurs", "nous",
-    "par", "pas", "pour", "que", "qui", "sur", "une", "vous", "aux", "ces",
-    "cette", "comme", "document", "documents", "rapport", "entre", "plus",
-    "afin", "ainsi", "sont", "etre", "son", "ses", "the", "and", "for",
-}
-CATEGORY_RULES = {
-    "Peche": {"peche", "halieutique", "ressources", "maritime", "poisson"},
-    "Aquaculture": {"aquaculture", "production", "elevage", "marine", "larves"},
-    "Qualite": {"qualite", "norme", "validation", "procedure", "audit"},
-    "RH": {"rh", "ressources", "humaines", "salaire", "conge", "employe"},
-    "Finance": {"finance", "budget", "facture", "paiement", "cout", "achat"},
-    "Informatique": {"informatique", "systeme", "donnees", "securite", "serveur"},
-}
-
-app = FastAPI(
-    title="Prototype de recherche semantique documentaire - INRH",
-    description="API de recherche semantique par passages, basee sur SBERT et FAISS.",
-    version="1.1.0",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:8000",
-        "http://127.0.0.1:8001",
-        "http://127.0.0.1:8010",
-        "http://127.0.0.1:8011",
-        "http://127.0.0.1:8012",
-        "http://127.0.0.1:8013",
-        "http://127.0.0.1:8014",
-        "http://127.0.0.1:8015",
-        "http://127.0.0.1:8016",
-        "http://127.0.0.1:8017",
-        "http://127.0.0.1:8018",
-        "http://127.0.0.1:8019",
-        "http://localhost:8000",
-        "http://localhost:8015",
-        "http://localhost:8016",
-        "http://localhost:8017",
-        "http://localhost:8018",
-        "http://localhost:8019",
-        "null",
-    ],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.mount("/app", StaticFiles(directory="static", html=True), name="static")
-
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def app_lifespan(_: FastAPI):
     init_db(METADATA_PATH)
     migrate_legacy_json_files()
     seed_default_users()
+    yield
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Prototype de recherche semantique documentaire - INRH",
+        description="API de recherche semantique par passages, basee sur SBERT et FAISS.",
+        version="1.1.0",
+        lifespan=app_lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=APP_ALLOWED_ORIGINS,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.mount("/app", StaticFiles(directory="static", html=True), name="static")
+    return app
+
+
+app = create_app()
+app.include_router(api_router)
 
 
 def require_permission(permission: str):

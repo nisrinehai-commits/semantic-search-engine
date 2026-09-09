@@ -1,8 +1,29 @@
 venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.log
 .env
-data/processed/
-*.ipynb_checkpoints
+.env.*
+.pytest_cache/
 .DS_Store
-data/embeddings/
+*.ipynb_checkpoints
+
+# runtime data
+/data/raw/
+/data/processed/
+/data/embeddings/
+/data/metadata/*.db
+/data/metadata/*.json
+
+# benchmark artifacts
+benchmark*.png
+benchmark*.json
+benchmark.py
+
+# local logs
+*.err.log
+*.out.log
+uvicorn*.log
+server-*.log
