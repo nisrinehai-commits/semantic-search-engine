@@ -1,184 +1,227 @@
-# Prototype de recherche semantique documentaire - INRH
+# Semantic Search Engine - INRH
 
-## Contexte
+## Vue d’ensemble
 
-Ce prototype a ete realise dans le cadre d'un stage a l'INRH, avec l'objectif
-d'explorer une brique de recherche intelligente pour une future plateforme GED.
+Ce projet est un prototype de moteur de recherche documentaire intelligent conçu pour explorer une solution de gestion documentaire (GED) pilotée par la recherche sémantique et l’IA locale.
 
-L'idee principale est de permettre a un utilisateur de poser une question en
-langage naturel et de retrouver les passages documentaires les plus pertinents,
-meme si les mots exacts de la requete ne sont pas presents dans le document.
+L’objectif principal est de permettre à un utilisateur de chercher des informations dans des documents longs et hétérogènes, même quand les mots exacts ne sont pas présents dans le texte. Le système combine :
 
-## Fonctionnalites principales
+- extraction de texte depuis plusieurs formats de documents,
+- segmentation en passages,
+- embeddings vectoriels,
+- indexation avec FAISS,
+- recherche hybride (sémantique + lexical),
+- interface web pour consultation et gestion documentaire.
 
-- Ingestion de plusieurs formats : DOCX, PDF natif, PDF scanne via OCR et TXT.
-- Extraction automatique du texte selon le type de document.
-- Decoupage des documents en passages courts et chevauchants.
-- Generation d'embeddings semantiques avec SBERT multilingue.
-- Indexation vectorielle avec FAISS.
-- Recherche par similarite cosinus sur les passages, pas seulement sur les documents entiers.
-- API REST FastAPI avec endpoints de recherche et de statistiques.
-- Interface web de demonstration disponible dans le navigateur.
-- Upload avance depuis l'interface : drag & drop, multi-fichiers, validation des formats,
-  progression et indexation automatique.
-- Bibliotheque documentaire : liste des documents, recherche instantanee, filtre par type,
-  tri, pagination, vues cartes/tableau, previsualisation et telechargement.
-- Gestion de metadonnees GED : categorie, auteur, description, tags et statut documentaire.
-- Workflow documentaire : changement d'etat, commentaires, acteur et historique des actions.
-- Dashboard GED : indicateurs globaux, repartitions par type/categorie/statut,
-  documents recents et activite workflow.
-- Recherche hybride : fusion configurable entre score semantique et score mots-cles.
-- Corbeille documentaire : suppression logique et restauration.
-- Gestion des versions : empreinte SHA-256 et historique des imports.
-- Analyse IA locale : resume automatique, mots-cles, categorie suggeree,
-  niveau de confidentialite et doublons potentiels.
-- Assistant documentaire RAG local : questions-reponses avec citations de passages.
-- Gestion utilisateurs de demonstration : roles, permissions et connexion demo.
-- Persistance relationnelle : SQLite local par defaut et PostgreSQL activable par configuration.
-- Authentification JWT avec mots de passe hashes pour les comptes de demonstration.
-- Permissions par document : restriction possible par roles autorises.
+Ce projet a été conçu dans un contexte de démonstration de preuve de concept, avec un accent sur la recherche par passages, la recherche documentaire intelligente et le workflow documentaire.
 
-## Pourquoi la recherche par passages ?
+---
 
-La premiere version indexait un vecteur par document. Cette approche fonctionne
-sur un petit corpus, mais elle devient moins precise quand les documents sont
-longs ou contiennent plusieurs sujets.
+## Fonctionnalités principales
 
-La version actuelle indexe des passages. Cela permet :
+- Ingestion de documents PDF, DOCX et TXT
+- Extraction automatique du texte selon le format source
+- Découpage des documents en passages courts et chevauchants
+- Génération d’embeddings sémantiques avec un modèle de type sentence-transformers
+- Indexation vectorielle avec FAISS
+- Recherche hybride : sémantique, lexicale ou mixte
+- API REST FastAPI avec endpoints de gestion et de recherche
+- Gestion documentaire avec métadonnées, catégories, tags et statut
+- Workflow documentaire avec historique d’actions
+- Tableau de bord GED pour synthèse globale
+- Gestion des versions de document
+- Gestion de la corbeille / suppression logique
+- Analyse locale du document : résumé, mots-clés, catégorie suggérée, confidentialité
+- Assistant documentaire de type RAG local
+- Gestion d’utilisateurs et permissions de démonstration
+- Authentification JWT en mode démonstration
+- Support SQLite par défaut et PostgreSQL en option
 
-- d'obtenir des resultats plus precis ;
-- d'afficher directement l'extrait utile ;
-- de preparer plus naturellement une future evolution vers du RAG ou un assistant documentaire.
+---
 
-## Architecture
+## Architecture du projet
 
 ```text
-data/
-  raw/          Documents sources
-  processed/    Textes extraits
-  embeddings/   Index FAISS, embeddings, metadonnees et statistiques
-
-src/
-  ingestion/    Extraction DOCX, PDF, OCR et TXT
-  embeddings/   Decoupage, embeddings et construction d'index
-  search/       Moteur de recherche vectorielle
-  api/          API REST FastAPI
-static/
-  index.html    Interface web de demonstration
-tests/
-  test_*.py     Tests unitaires
+.
+├── data/
+│   ├── raw/                  # documents sources
+│   ├── processed/            # textes extraits
+│   ├── embeddings/          # index FAISS + métadonnées + stats
+│   └── metadata/            # SQLite/JSON metadata + workflow + versions
+├── src/
+│   ├── api/                 # API FastAPI, schémas, bootstrap
+│   ├── config.py            # configuration centralisée
+│   ├── embeddings/          # embeddings, indexation, chunking
+│   ├── ingestion/           # extraction PDF / DOCX / TXT / OCR
+│   ├── search/              # moteur de recherche
+│   └── utils/               # utilitaires
+├── static/
+│   └── index.html           # interface web
+├── tests/
+│   └── *.py                 # tests de l’API et du moteur
+├── .gitignore
+├── .env.example
+├── requirements.txt
+├── README.md
+├── benchmark.py
+└── benchmark_results.json
 ```
 
+---
+
+## Stack technique
+
+- Python 3.11+
+- FastAPI
+- FAISS
+- NumPy
+- scikit-learn
+- python-docx
+- pypdf
+- pytesseract
+- pdf2image
+- SQLite (par défaut)
+- PostgreSQL (optionnel via variable d’environnement)
+- Pytest
+
+---
+
 ## Installation
+
+### 1. Créer un environnement virtuel
 
 ```bash
 python -m venv venv
 venv\Scripts\activate
+```
+
+### 2. Installer les dépendances
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Prerequis systeme pour les PDF scannes
+### 3. Configurer les variables d’environnement
 
-Pour l'OCR, installer aussi :
+Un fichier d’exemple est fourni dans [.env.example](.env.example).
 
-- Tesseract OCR avec le pack de langue francaise ;
-- Poppler, ajoute au PATH.
+Par exemple :
+
+```bash
+set GED_JWT_SECRET=une-cle-secrete-longue
+set GED_JWT_EXPIRES_SECONDS=86400
+set GED_ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+```
+
+Pour PostgreSQL :
+
+```bash
+set GED_DATABASE_URL=postgresql://ged_user:ged_password@localhost:5432/ged_inrh
+```
+
+### 4. Préparer les données
+
+Le projet crée automatiquement les fichiers et tables nécessaires au démarrage, mais il faut aussi construire l’index vectoriel au moins une fois.
+
+---
 
 ## Utilisation
 
-### 1. Extraire les textes
-
-```bash
-python -m src.ingestion.loader
-```
-
-### 2. Construire l'index vectoriel
-
-```bash
-python -m src.embeddings.build_index
-```
-
-La construction produit :
-
-- `data/embeddings/faiss_index.bin`
-- `data/embeddings/embeddings.npy`
-- `data/embeddings/metadata.json`
-- `data/embeddings/stats.json`
-
-### 3. Lancer l'API et l'interface
+### Démarrer l’API
 
 ```bash
 uvicorn src.api.main:app --reload
 ```
 
-Interface web :
+### Accès à l’interface
 
 ```text
 http://127.0.0.1:8000/app
 ```
 
-Documentation interactive FastAPI :
+### Accès à la documentation OpenAPI
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-### Configuration base de donnees
-
-Par defaut, le prototype utilise une base SQLite locale creee automatiquement dans
-`data/metadata/document_metadata.db`. Cela permet de tester le projet sans installer
-PostgreSQL.
-
-Pour utiliser PostgreSQL, definir la variable d'environnement suivante avant de
-lancer l'API :
+### Construire l’index de recherche
 
 ```bash
-set GED_DATABASE_URL=postgresql://ged_user:ged_password@localhost:5432/ged_inrh
-uvicorn src.api.main:app --reload
+python -m src.embeddings.build_index
 ```
 
-Les tables sont creees automatiquement au demarrage :
+Cela produit les fichiers suivants dans `data/embeddings/` :
 
-- `document_metadata`
-- `workflow_actions`
-- `document_versions`
-- `users`
+- `faiss_index.bin`
+- `embeddings.npy`
+- `metadata.json`
+- `stats.json`
 
-Variables utiles :
+---
 
-```bash
-set GED_JWT_SECRET=une-cle-secrete-longue
-set GED_JWT_EXPIRES_SECONDS=86400
+## Points forts du moteur de recherche
+
+### Recherche par passages
+
+La recherche ne se fait pas uniquement sur le document entier, mais sur des passages textuels. Cela permet :
+
+- plus de précision,
+- meilleure pertinence des résultats,
+- affichage d’extraits utiles,
+- meilleur alignement avec une logique de RAG ou d’assistant documentaire.
+
+### Recherche hybride
+
+Le moteur permet trois modes :
+
+- `semantic` : score vectoriel uniquement
+- `keyword` : score lexical uniquement
+- `hybrid` : combinaison pondérée des deux
+
+La combinaison est généralement de la forme :
+
+```text
+score_final = poids_semantique * score_semantique + poids_lexical * score_lexical
 ```
 
-## Endpoints API
+Par défaut :
 
-| Methode | Route | Description |
+```text
+0.7 * score_semantique + 0.3 * score_lexical
+```
+
+---
+
+## API principale
+
+### Endpoints utiles
+
+| Méthode | Route | Description |
 |---|---|---|
-| GET | `/` | Verification simple de l'API |
-| GET | `/health` | Etat de sante |
-| GET | `/stats` | Statistiques de l'index |
-| GET | `/dashboard` | Indicateurs et activite GED |
-| GET | `/documents` | Liste paginee des documents |
-| GET | `/documents/{filename}/preview` | Previsualisation PDF, DOCX ou TXT |
-| GET | `/documents/{filename}/download` | Telechargement du document original |
-| GET | `/documents/{filename}/metadata` | Lecture des metadonnees GED |
-| PUT | `/documents/{filename}/metadata` | Mise a jour des metadonnees GED |
-| GET | `/documents/{filename}/workflow` | Historique de workflow du document |
-| POST | `/documents/{filename}/workflow` | Changement d'etat avec commentaire |
-| DELETE | `/documents/{filename}` | Suppression logique / corbeille |
-| POST | `/documents/{filename}/restore` | Restauration depuis la corbeille |
-| GET | `/documents/{filename}/versions` | Historique des versions connues |
-| GET | `/documents/{filename}/similar` | Documents similaires ou doublons potentiels |
-| GET | `/documents/{filename}/ai` | Resume, mots-cles, classification et confidentialite |
-| POST | `/assistant/ask` | Assistant documentaire RAG local |
-| GET | `/users` | Utilisateurs, roles et permissions demo |
-| POST | `/auth/login` | Connexion de demonstration |
-| GET | `/metadata/categories` | Liste des categories utilisees |
+| GET | `/` | Vérification simple de l’API |
+| GET | `/health` | État de santé |
+| GET | `/stats` | Statistiques de l’index |
+| GET | `/dashboard` | Indicateurs GED |
+| GET | `/documents` | Liste des documents |
+| GET | `/documents/{filename}/preview` | Prévisualisation |
+| GET | `/documents/{filename}/download` | Téléchargement |
+| GET | `/documents/{filename}/metadata` | Métadonnées |
+| PUT | `/documents/{filename}/metadata` | Mise à jour des métadonnées |
+| GET | `/documents/{filename}/workflow` | Historique workflow |
+| POST | `/documents/{filename}/workflow` | Changement de statut |
+| DELETE | `/documents/{filename}` | Suppression logique |
+| POST | `/documents/{filename}/restore` | Restauration |
+| GET | `/documents/{filename}/versions` | Historique des versions |
+| GET | `/documents/{filename}/similar` | Documents proches |
+| GET | `/documents/{filename}/ai` | Analyse locale IA |
+| POST | `/assistant/ask` | Assistant documentaire |
+| GET | `/users` | Utilisateurs et permissions |
+| POST | `/auth/login` | Connexion demo |
 | POST | `/search` | Recherche semantique |
-| POST | `/upload?filename=...` | Import et indexation automatique d'un document |
+| POST | `/upload?filename=...` | Import et indexation |
 
-Exemple de requete :
+### Exemple de requête de recherche
 
 ```json
 {
@@ -190,74 +233,80 @@ Exemple de requete :
 }
 ```
 
-Exemple de resultat :
+---
 
-```json
-{
-  "filename": "doc_peche_durable_docx.txt",
-  "source_type": "docx",
-  "chunk_id": 0,
-  "start_char": 0,
-  "end_char": 842,
-  "score": 0.73,
-  "semantic_score": 0.81,
-  "keyword_score": 0.54,
-  "search_mode": "hybrid",
-  "text_preview": "..."
-}
-```
+## Données et persistance
 
-### Recherche hybride
+Le projet utilise par défaut une base SQLite locale, créée automatiquement au démarrage dans `data/metadata/`.
 
-Le moteur propose trois modes :
+Les tables principales sont :
 
-- `semantic` : recherche par similarite vectorielle FAISS / embeddings ;
-- `keyword` : recherche mots-cles avec un score BM25 simplifie ;
-- `hybrid` : fusion des deux scores.
+- `document_metadata`
+- `workflow_actions`
+- `document_versions`
+- `users`
 
-La formule utilisee en mode hybride est :
+Cela permet un démarrage rapide sans dépendance externe, tout en gardant une évolution possible vers PostgreSQL.
 
-```text
-score_final = poids_semantique * score_semantique + poids_mots_cles * score_BM25
-```
+---
 
-Par defaut :
+## Tests
 
-```text
-score_final = 0.7 * score_semantique + 0.3 * score_BM25
-```
+La suite de tests couvre les points clés de l’API et du moteur de recherche.
 
-Depuis l'interface, l'utilisateur peut choisir le mode et modifier les poids
-avec des curseurs. Les resultats affichent le score final, le score semantique
-et le score mots-cles.
-
-### Upload avance
-
-Depuis l'interface web, il est possible de glisser-deposer un ou plusieurs
-documents PDF, DOCX ou TXT. Chaque fichier est :
-
-1. valide selon son extension ;
-2. sauvegarde dans `data/raw` ;
-3. extrait vers `data/processed` ;
-4. ajoute a l'index vectoriel ;
-5. disponible immediatement dans la recherche.
-
-L'endpoint `/upload` accepte un fichier envoye en binaire brut :
+Pour lancer les tests :
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/upload?filename=note.txt" \
-  -H "Content-Type: application/octet-stream" \
-  --data-binary "@note.txt"
+python -m pytest -q
 ```
 
-Si un fichier porte deja le meme nom, le systeme ajoute automatiquement un
-suffixe temporel afin de ne pas ecraser l'ancien document.
+État actuel du projet : les tests passent.
 
-### Bibliotheque documentaire
+---
 
-La page principale propose une bibliotheque GED avec :
+## Points d’amélioration recommandés
 
-- affichage en cartes ou tableau ;
+Le projet est fonctionnel et démonstratif, mais plusieurs améliorations seraient utiles pour le rendre plus professionnel :
+
+- séparer davantage la logique API par domaines (documents, auth, workflow, search)
+- centraliser mieux la configuration en environnement
+- nettoyer plus strictement les données runtime du dépôt
+- renforcer la sécurité des uploads et des permissions
+- ajouter CI, lint et type checking
+- introduire des migrations de base de données plus robustes
+- répartir les responsabilités dans des services métier plus clairs
+
+---
+
+## Exemple de démarrage rapide
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python -m src.embeddings.build_index
+uvicorn src.api.main:app --reload
+```
+
+Puis ouvrir :
+
+```text
+http://127.0.0.1:8000/app
+```
+
+---
+
+## Conclusion
+
+Ce projet montre une preuve de concept solide pour une GED intelligente basée sur la recherche documentaire sémantique. Il est déjà utile pour :
+
+- démontrer un moteur de recherche documentaire intelligent,
+- explorer les usages RAG locaux,
+- gérer un workflow documentaire simple,
+- présenter une architecture de recherche sur documents d’entreprise.
+
+Le prochain niveau de maturité serait d’ajouter une vraie séparation des responsabilités, un meilleur découpage des services et une préparation plus explicite pour un environnement de production.
+
 - recherche par nom de document ;
 - filtre par type de fichier ;
 - tri par date, nom, taille ou type ;
