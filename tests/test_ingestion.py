@@ -2,8 +2,10 @@
 Tests unitaires pour le module d'ingestion de documents.
 """
 
-from src.ingestion.loader import load_document
+import pytest
+
 from src.ingestion.docx_extractor import extract_text_from_docx
+from src.ingestion.loader import load_document
 from src.ingestion.pdf_extractor import extract_text_from_pdf
 
 
@@ -29,9 +31,13 @@ def test_load_document_pdf_native():
     assert len(text) > 0
 
 
+def test_load_document_txt(tmp_path):
+    file_path = tmp_path / "note.txt"
+    file_path.write_text("Document texte simple pour la recherche semantique.", encoding="utf-8")
+
+    assert "recherche semantique" in load_document(str(file_path))
+
+
 def test_load_document_unsupported_format():
-    try:
-        load_document("data/raw/fichier_inexistant.txt")
-        assert False, "Une ValueError aurait dû être levée"
-    except ValueError:
-        pass
+    with pytest.raises(ValueError):
+        load_document("data/raw/fichier_inexistant.xlsx")

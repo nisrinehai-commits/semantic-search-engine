@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GED intelligente INRH</title>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --bg: #f7f8f8;
+            --surface: #ffffff;
+            --surface-soft: #f3f6f5;
+            --ink: #171c1b;
+            --muted: #68716f;
+            --quiet: #8b9693;
+            --line: #e1e6e4;
+            --line-strong: #cbd5d1;
+            --accent: #0f766e;
+            --accent-dark: #0b5d57;
+            --accent-soft: #e7f4f1;
+            --danger: #b13d3d;
+            --warning: #a86913;
+            --success: #23704f;
+            --archive: #6b7280;
+            --radius: 8px;
+            --shadow: 0 16px 40px rgba(18, 28, 25, 0.08);
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        }
+        button, input, select, textarea { font: inherit; }
+        button {
+            min-height: 38px;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            padding: 0 14px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 720;
+            cursor: pointer;
+            transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+        }
+        button:hover { background: var(--accent-dark); transform: translateY(-1px); }
+        button:disabled { opacity: 0.55; cursor: progress; transform: none; }
+        button.secondary {
+            background: var(--surface);
+            color: var(--ink);
+            border-color: var(--line);
+        }
+        button.secondary:hover { background: var(--surface-soft); border-color: var(--line-strong); }
+        button.ghost {
+            background: transparent;
+            color: var(--muted);
+            border-color: transparent;
+        }
+        button.ghost:hover { background: var(--surface-soft); color: var(--ink); }
+        input, select, textarea {
+            width: 100%;
+            min-height: 40px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--ink);
+            padding: 0 12px;
+        }
+        textarea {
+            min-height: 92px;
+            padding: 10px 12px;
+            resize: vertical;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: 3px solid rgba(15, 118, 110, 0.14);
+            border-color: var(--accent);
+        }
+        .app-shell {
+            display: grid;
+            grid-template-columns: 248px minmax(0, 1fr);
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            border-right: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.86);
+            backdrop-filter: blur(14px);
+            padding: 18px 14px;
+        }
+        .brand {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 8px 8px 18px;
+        }
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: var(--radius);
+            background: var(--ink);
+            color: #fff;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+        .brand-title { font-weight: 800; }
+        .brand-subtitle { color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
+        .nav {
+            display: grid;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        .nav button {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            justify-content: flex-start;
+            text-align: left;
+            min-height: 38px;
+            padding: 0 10px;
+            color: var(--muted);
+            background: transparent;
+            border-color: transparent;
+        }
+        .nav button:hover { color: var(--ink); background: var(--surface-soft); transform: none; }
+        .nav button.active {
+            color: var(--ink);
+            background: var(--accent-soft);
+            border-color: #d3e8e4;
+        }
+        .sidebar-footer {
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 18px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+        }
+        .session-name { font-weight: 750; font-size: 0.9rem; }
+        .session-role { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
+        .main {
+            min-width: 0;
+            padding: 24px;
+        }
+        .page {
+            display: none;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+        .page.active { display: block; }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+        .eyebrow {
+            color: var(--quiet);
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        h1 {
+            margin: 5px 0 0;
+            font-size: clamp(1.8rem, 4vw, 2.7rem);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+        h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0;
+        }
+        .subtitle {
+            margin: 10px 0 0;
+            color: var(--muted);
+            line-height: 1.55;
+            max-width: 680px;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0 11px;
+            color: var(--muted);
+            background: var(--surface);
+            font-size: 0.86rem;
+            white-space: nowrap;
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 26px;
+        }
+        .quick-action {
+            min-height: 132px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            text-align: left;
+            color: var(--ink);
+            box-shadow: 0 8px 24px rgba(18, 28, 25, 0.045);
+        }
+        .quick-action:hover {
+            background: #fbfdfc;
+            border-color: var(--line-strong);
+            box-shadow: var(--shadow);
+        }
+        .quick-action strong { display: block; font-size: 1.04rem; }
+        .quick-action span { display: block; margin-top: 8px; color: var(--muted); font-weight: 400; line-height: 1.45; }
+        .quick-action.primary {
+            background: var(--ink);
+            color: #fff;
+        }
+        .quick-action.primary span { color: #c9d2d0; }
+        .metric-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .metric {
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: 0 8px 22px rgba(18, 28, 25, 0.035);
+        }
+        .metric span { display: block; color: var(--muted); font-size: 0.84rem; }
+        .metric strong { display: block; margin-top: 9px; font-size: 1.65rem; line-height: 1; }
+        .split {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: 0 8px 22px rgba(18, 28, 25, 0.035);
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+        .panel-body { padding: 14px 16px; }
+        .list {
+            display: grid;
+            gap: 2px;
+        }
+        .list-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .list-item:last-child { border-bottom: 0; }
+        .item-title { font-weight: 760; overflow-wrap: anywhere; }
+        .item-meta { margin-top: 4px; color: var(--muted); font-size: 0.86rem; }
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            min-height: 24px;
+            border-radius: 999px;
+            padding: 0 8px;
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 0.76rem;
+            font-weight: 760;
+        }
+        .badge.success { background: #e6f3ec; color: var(--success); }
+        .badge.warning { background: #fff4df; color: var(--warning); }
+        .badge.archive { background: #f0f2f3; color: var(--archive); }
+        .badge.danger { background: #f9e7e7; color: var(--danger); }
+        .icon {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            border-radius: var(--radius);
+            background: var(--accent-soft);
+            color: var(--accent);
+            margin-bottom: 14px;
+        }
+        .quick-action.primary .icon-box {
+            background: rgba(255,255,255,0.11);
+            color: #fff;
+        }
+        .document-title-cell {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .file-icon {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface-soft);
+            color: var(--accent);
+        }
+        .mini-chart {
+            display: grid;
+            gap: 10px;
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 128px minmax(0, 1fr) 32px;
+            gap: 10px;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+        .chart-track {
+            height: 8px;
+            border-radius: 999px;
+            background: var(--surface-soft);
+            overflow: hidden;
+        }
+        .chart-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--accent);
+        }
+        .skeleton {
+            position: relative;
+            overflow: hidden;
+            min-height: 64px;
+            border-radius: var(--radius);
+            background: var(--surface-soft);
+        }
+        .skeleton::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+            animation: shimmer 1.2s infinite;
+        }
+        @keyframes shimmer { to { transform: translateX(100%); } }
+        .empty-state {
+            padding: 28px;
+            text-align: center;
+            border: 1px dashed var(--line-strong);
+            border-radius: var(--radius);
+            background: #fbfcfc;
+        }
+        .empty-state strong { display: block; }
+        .empty-state span { display: block; margin-top: 6px; color: var(--muted); }
+        mark {
+            background: #fff3c4;
+            color: inherit;
+            border-radius: 4px;
+            padding: 0 2px;
+        }
+        .dropzone {
+            display: grid;
+            place-items: center;
+            min-height: 148px;
+            padding: 18px;
+            border: 1.5px dashed var(--line-strong);
+            border-radius: var(--radius);
+            background: #fbfcfc;
+            text-align: center;
+            cursor: pointer;
+        }
+        .dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+        .dropzone strong { display: block; }
+        .dropzone span { display: block; margin-top: 6px; color: var(--muted); font-size: 0.9rem; }
+        .file-input { display: none; }
+        .toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) 150px 170px 150px auto;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .document-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 390px;
+            gap: 16px;
+            align-items: start;
+        }
+        .document-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .document-table th, .document-table td {
+            padding: 13px 12px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.92rem;
+        }
+        .document-table th {
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .document-table tr:hover td { background: #fbfcfc; }
+        .detail-pane {
+            position: sticky;
+            top: 18px;
+            max-height: calc(100vh - 36px);
+            overflow: auto;
+        }
+        .preview-box {
+            min-height: 260px;
+            max-height: 360px;
+            overflow: auto;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface-soft);
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+        .preview-frame {
+            width: 100%;
+            height: 330px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface-soft);
+        }
+        .form-grid {
+            display: grid;
+            gap: 10px;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 760;
+        }
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .search-hero {
+            max-width: 780px;
+            margin: 32px auto 26px;
+            text-align: center;
+        }
+        .search-box {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+        .search-box input {
+            border: 0;
+            min-height: 46px;
+            font-size: 1rem;
+        }
+        .search-box input:focus { outline: 0; }
+        .result-card {
+            padding: 17px 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .result-card:last-child { border-bottom: 0; }
+        .result-title { font-size: 1.05rem; font-weight: 780; }
+        .result-excerpt { margin: 9px 0 0; color: #3d4745; line-height: 1.55; }
+        .score-pill {
+            color: var(--success);
+            font-weight: 760;
+            font-size: 0.86rem;
+        }
+        .assistant-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 330px;
+            gap: 16px;
+            align-items: start;
+        }
+        .chat-panel {
+            min-height: 620px;
+            display: grid;
+            grid-template-rows: 1fr auto;
+        }
+        .messages {
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+        .message {
+            max-width: 82%;
+            padding: 13px 14px;
+            border-radius: 14px;
+            line-height: 1.55;
+        }
+        .message.user {
+            justify-self: end;
+            background: var(--ink);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            justify-self: start;
+            background: var(--surface-soft);
+            border-bottom-left-radius: 4px;
+        }
+        .composer {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            padding: 12px;
+            border-top: 1px solid var(--line);
+        }
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .role-card {
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: 0 8px 22px rgba(18, 28, 25, 0.035);
+        }
+        .empty {
+            padding: 26px;
+            color: var(--muted);
+            text-align: center;
+        }
+        .error { color: var(--danger); }
+        @media (max-width: 1060px) {
+            .app-shell { grid-template-columns: 1fr; }
+            .sidebar {
+                position: static;
+                height: auto;
+                padding: 14px;
+            }
+            .sidebar-footer { display: none; }
+            .nav {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                margin-top: 6px;
+            }
+            .nav button {
+                text-align: center;
+                justify-content: center;
+                padding: 0 8px;
+            }
+            .brand { padding-bottom: 10px; }
+            .quick-actions, .metric-row, .split, .document-layout, .assistant-layout, .admin-grid {
+                grid-template-columns: 1fr;
+            }
+            .detail-pane { position: static; max-height: none; }
+        }
+        @media (max-width: 720px) {
+            .main { padding: 16px; }
+            .page-header { display: block; margin-bottom: 20px; }
+            .status-pill { margin-top: 12px; }
+            .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .toolbar, .search-box, .composer { grid-template-columns: 1fr; }
+            .document-table thead { display: none; }
+            .document-table, .document-table tbody, .document-table tr, .document-table td {
+                display: block;
+                width: 100%;
+            }
+            .document-table tr {
+                border-bottom: 1px solid var(--line);
+                padding: 10px 0;
+            }
+            .document-table td { border-bottom: 0; padding: 7px 12px; }
+            .message { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">IN</div>
+                <div>
+                    <div class="brand-title">GED INRH</div>
+                    <div class="brand-subtitle">Documents & connaissance</div>
+                </div>
+            </div>
+            <nav class="nav">
+                <button class="active" id="navDashboard" onclick="showPage('dashboard')"><span class="icon" data-icon="layout"></span>Tableau</button>
+                <button id="navDocuments" onclick="showPage('documents')"><span class="icon" data-icon="folder"></span>Documents</button>
+                <button id="navSearch" onclick="showPage('search')"><span class="icon" data-icon="search"></span>Recherche</button>
+                <button id="navAssistant" onclick="showPage('assistant')"><span class="icon" data-icon="bot"></span>Assistant IA</button>
+                <button id="navAdmin" onclick="showPage('admin')"><span class="icon" data-icon="shield"></span>Admin</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="session-name" id="sessionName">Session locale</div>
+                <div class="session-role" id="sessionRole">Initialisation...</div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <section class="page active" id="dashboardPage">
+                <header class="page-header">
+                    <div>
+                        <div class="eyebrow">GED intelligente INRH</div>
+                        <h1>Votre espace documentaire.</h1>
+                        <p class="subtitle">Ajoutez, retrouvez et exploitez les documents de l'organisation depuis un espace clair et unifie.</p>
+                    </div>
+                    <div class="status-pill" id="apiStatus">Connexion...</div>
+                </header>
+
+                <div class="quick-actions">
+                    <button class="quick-action primary" onclick="showPage('documents'); focusUpload();">
+                        <span class="icon-box" data-icon="upload"></span>
+                        <strong>Ajouter un document</strong>
+                        <span>Importer PDF, DOCX ou TXT et rendre le document disponible dans la GED.</span>
+                    </button>
+                    <button class="quick-action" onclick="showPage('search'); focusSearch();">
+                        <span class="icon-box" data-icon="search"></span>
+                        <strong>Retrouver un document</strong>
+                        <span>Rechercher par titre, categorie, mots-cles ou intention.</span>
+                    </button>
+                    <button class="quick-action" onclick="showPage('assistant'); focusAssistant();">
+                        <span class="icon-box" data-icon="bot"></span>
+                        <strong>Poser une question</strong>
+                        <span>Interroger les documents avec l'assistant IA et consulter les sources.</span>
+                    </button>
+                </div>
+
+                <div class="metric-row">
+                    <div class="metric"><span>Total documents</span><strong id="metricTotal">-</strong></div>
+                    <div class="metric"><span>Documents valides</span><strong id="metricValidated">-</strong></div>
+                    <div class="metric"><span>En attente</span><strong id="metricPending">-</strong></div>
+                    <div class="metric"><span>Archives</span><strong id="metricArchived">-</strong></div>
+                </div>
+
+                <div class="split">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <h2>Derniers documents</h2>
+                            <button class="ghost" onclick="showPage('documents')">Voir tout</button>
+                        </div>
+                        <div class="panel-body list" id="recentDocuments"></div>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-header">
+                            <h2>Repartition par categorie</h2>
+                            <span class="status-pill">Vue metier</span>
+                        </div>
+                        <div class="panel-body mini-chart" id="categoryChart"></div>
+                    </section>
+                </div>
+
+                <div class="split" style="margin-top:16px;">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <h2>Activite recente</h2>
+                            <span class="status-pill">Audit</span>
+                        </div>
+                        <div class="panel-body list" id="recentActivity"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="page" id="documentsPage">
+                <header class="page-header">
+                    <div>
+                        <div class="eyebrow">Bibliotheque documentaire</div>
+                        <h1>Documents</h1>
+                        <p class="subtitle">Une vue simple pour classer, previsualiser, modifier et gouverner les documents.</p>
+                    </div>
+                    <button onclick="focusUpload()">Ajouter</button>
+                </header>
+
+                <section class="panel" id="uploadPanel">
+                    <div class="panel-header">
+                        <h2>Import</h2>
+                        <span class="status-pill">PDF DOCX TXT</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="dropzone" id="dropzone" tabindex="0">
+                            <div>
+                                <strong>Glisser-deposer les fichiers ici</strong>
+                                <span>Selection multiple et import direct dans la GED.</span>
+                            </div>
+                        </div>
+                        <input class="file-input" id="fileInput" type="file" multiple accept=".pdf,.docx,.txt">
+                        <div class="action-row">
+                            <button id="uploadBtn" onclick="uploadSelectedFiles()" disabled>Importer</button>
+                            <button class="secondary" onclick="clearSelectedFiles()">Vider</button>
+                        </div>
+                        <div class="list" id="fileList" style="margin-top:12px;"></div>
+                    </div>
+                </section>
+
+                <div class="toolbar">
+                    <input id="docQuery" placeholder="Titre, auteur, mot-cle..." oninput="loadDocuments(1)">
+                    <select id="docType" onchange="loadDocuments(1)">
+                        <option value="all">Tous types</option>
+                        <option value="PDF">PDF</option>
+                        <option value="DOCX">DOCX</option>
+                        <option value="TXT">TXT</option>
+                    </select>
+                    <select id="docCategory" onchange="loadDocuments(1)">
+                        <option value="all">Toutes categories</option>
+                    </select>
+                    <select id="docSort" onchange="loadDocuments(1)">
+                        <option value="date_desc">Recents</option>
+                        <option value="name_asc">Nom A-Z</option>
+                        <option value="name_desc">Nom Z-A</option>
+                        <option value="type_asc">Type</option>
+                    </select>
+                    <button class="secondary" onclick="toggleTrash()" id="trashToggle">Corbeille</button>
+                </div>
+
+                <div class="document-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <h2>Bibliotheque</h2>
+                            <span class="status-pill" id="pageInfo">-</span>
+                        </div>
+                        <div class="panel-body" style="padding:0;">
+                            <table class="document-table">
+                                <thead>
+                                    <tr>
+                                        <th>Document</th>
+                                        <th>Categorie</th>
+                                        <th>Auteur</th>
+                                        <th>Statut</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentsTable"></tbody>
+                            </table>
+                        </div>
+                        <div class="panel-body action-row">
+                            <button class="secondary" onclick="changePage(-1)">Precedent</button>
+                            <button class="secondary" onclick="changePage(1)">Suivant</button>
+                        </div>
+                    </section>
+
+                    <aside class="panel detail-pane">
+                        <div class="panel-header">
+                            <h2>Detail document</h2>
+                            <span class="status-pill" id="detailStatus">Aucun</span>
+                        </div>
+                        <div class="panel-body" id="detailPane">
+                            <div class="empty">Selectionnez un document pour afficher sa previsualisation et ses metadonnees.</div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="page" id="searchPage">
+                <div class="search-hero">
+                    <div class="eyebrow">Recherche documentaire</div>
+                    <h1>Recherchez comme vous pensez.</h1>
+                    <p class="subtitle" style="margin-left:auto;margin-right:auto;">Tapez une question, un sujet, un auteur ou une categorie. Les resultats affichent uniquement ce qui aide a choisir le bon document.</p>
+                    <div class="search-box">
+                        <input id="query" placeholder="Ex: rapports qui parlent de la peche cotiere">
+                        <button id="searchBtn" onclick="doSearch()">Rechercher</button>
+                    </div>
+                    <div class="action-row" style="justify-content:center;">
+                        <button class="ghost" onclick="useExample('aquaculture marine')">Aquaculture</button>
+                        <button class="ghost" onclick="useExample('ressources halieutiques')">Ressources</button>
+                        <button class="ghost" onclick="useExample('securite des donnees')">Securite</button>
+                    </div>
+                </div>
+                <section class="panel">
+                    <div class="panel-header">
+                        <h2>Resultats</h2>
+                        <span class="status-pill" id="resultsTitle">En attente</span>
+                    </div>
+                    <div class="panel-body" id="results">
+                        <div class="empty">Lancez une recherche pour consulter les documents pertinents.</div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="page" id="assistantPage">
+                <header class="page-header">
+                    <div>
+                        <div class="eyebrow">Assistant IA documentaire</div>
+                        <h1>Posez une question aux documents.</h1>
+                        <p class="subtitle">L'assistant recherche les passages pertinents, formule une reponse et cite les documents utilises.</p>
+                    </div>
+                </header>
+                <div class="assistant-layout">
+                    <section class="panel chat-panel">
+                        <div class="messages" id="assistantMessages">
+                            <div class="message assistant">Bonjour. Posez une question sur vos documents, par exemple : quels documents parlent de l'aquaculture ?</div>
+                        </div>
+                        <div class="composer">
+                            <input id="assistantQuestion" placeholder="Votre question...">
+                            <button id="assistantBtn" onclick="askAssistant()">Envoyer</button>
+                        </div>
+                    </section>
+                    <aside class="panel">
+                        <div class="panel-header">
+                            <h2>Sources</h2>
+                            <span class="status-pill">Citations</span>
+                        </div>
+                        <div class="panel-body list" id="assistantSources">
+                            <div class="empty">Les sources apparaitront apres une question.</div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="page" id="adminPage">
+                <header class="page-header">
+                    <div>
+                        <div class="eyebrow">Administration</div>
+                        <h1>Roles et gouvernance.</h1>
+                        <p class="subtitle">Vue simplifiee des profils, permissions et actions documentaires importantes.</p>
+                    </div>
+                    <span class="status-pill" id="adminSession">Session</span>
+                </header>
+                <div class="admin-grid">
+                    <div class="role-card">
+                        <span class="icon-box" data-icon="shield"></span>
+                        <h2>Administrateur</h2>
+                        <p class="item-meta">Acces complet, utilisateurs, workflow et gouvernance.</p>
+                    </div>
+                    <div class="role-card">
+                        <span class="icon-box" data-icon="check"></span>
+                        <h2>Gestionnaire documentaire</h2>
+                        <p class="item-meta">Ajout, modification, classement et validation documentaire.</p>
+                    </div>
+                    <div class="role-card">
+                        <span class="icon-box" data-icon="eye"></span>
+                        <h2>Lecteur</h2>
+                        <p class="item-meta">Consultation, recherche et assistant IA.</p>
+                    </div>
+                </div>
+                <section class="panel" style="margin-top:16px;">
+                    <div class="panel-header">
+                        <h2>Utilisateurs</h2>
+                        <span class="status-pill">Gouvernance</span>
+                    </div>
+                    <div class="panel-body" style="padding:0;">
+                        <table class="document-table">
+                            <thead>
+                                <tr>
+                                    <th>Utilisateur</th>
+                                    <th>Role</th>
+                                    <th>Derniere connexion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable"></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="panel" style="margin-top:16px;">
+                    <div class="panel-header">
+                        <h2>Journal d'activite</h2>
+                        <span class="status-pill">Traçabilite</span>
+                    </div>
+                    <div class="panel-body list" id="adminActivity"></div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_CANDIDATES = [
+            window.location.origin,
+            "http://127.0.0.1:8019",
+            "http://127.0.0.1:8018",
+            "http://127.0.0.1:8017",
+            "http://127.0.0.1:8016",
+            "http://127.0.0.1:8015",
+            "http://127.0.0.1:8014",
+            "http://127.0.0.1:8013",
+            "http://127.0.0.1:8012",
+            "http://127.0.0.1:8011",
+            "http://127.0.0.1:8010",
+            "http://127.0.0.1:8000"
+        ].filter((value, index, values) => value && value !== "null" && values.indexOf(value) === index);
+        let API_URL = API_CANDIDATES[0] || "http://127.0.0.1:8019";
+        let selectedFiles = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let includeDeleted = false;
+        let selectedDocumentName = null;
+
+        const acceptedExtensions = [".pdf", ".docx", ".txt"];
+        const fileInput = document.getElementById("fileInput");
+        const dropzone = document.getElementById("dropzone");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const fileList = document.getElementById("fileList");
+        const mockDocuments = [
+            {
+                name: "rapport_annuel_aquaculture_2025.pdf",
+                title: "Rapport annuel aquaculture 2025",
+                category: "Aquaculture",
+                author: "Dr. Nadia El Fassi",
+                date: "2026-08-18T09:20:00",
+                modified_at: "2026-08-18T09:20:00",
+                status: "Disponible",
+                type: "PDF",
+                size_label: "4.8 Mo",
+                size_bytes: 5033165,
+                tags: ["aquaculture", "production", "2025"],
+                description: "Bilan annuel des sites aquacoles pilotes, indicateurs de croissance et recommandations pour 2026.",
+                excerpt: "Le developpement de l'aquaculture marine confirme une progression des rendements dans les zones pilotes du littoral marocain.",
+            },
+            {
+                name: "etude_stock_sardine_cote_atlantique.docx",
+                title: "Etude stock sardine cote atlantique",
+                category: "Ressources",
+                author: "Equipe Ressources Halieutiques",
+                date: "2026-08-17T14:10:00",
+                modified_at: "2026-08-17T14:10:00",
+                status: "En attente",
+                type: "DOCX",
+                size_label: "2.1 Mo",
+                size_bytes: 2202009,
+                tags: ["sardine", "stock", "atlantique"],
+                description: "Analyse des campagnes d'evaluation du stock de sardine sur la cote atlantique.",
+                excerpt: "Les indices acoustiques suggerent une stabilite relative du stock de sardine, avec des variations regionales observees au printemps.",
+            },
+            {
+                name: "procedure_securite_laboratoire_biologie_marine.pdf",
+                title: "Procedure securite laboratoire biologie marine",
+                category: "Securite",
+                author: "Aicha Benali",
+                date: "2026-08-15T11:45:00",
+                modified_at: "2026-08-15T11:45:00",
+                status: "Valide",
+                type: "PDF",
+                size_label: "980 Ko",
+                size_bytes: 1003520,
+                tags: ["securite", "laboratoire", "biologie"],
+                description: "Consignes de securite pour manipulation d'echantillons, produits chimiques et equipements sensibles.",
+                excerpt: "Le port des EPI est obligatoire dans les zones de preparation et tout incident doit etre consigne dans le registre de securite.",
+            },
+            {
+                name: "guide_qualite_echantillonnage.txt",
+                title: "Guide qualite echantillonnage",
+                category: "Qualite",
+                author: "Service Qualite INRH",
+                date: "2026-08-12T08:30:00",
+                modified_at: "2026-08-12T08:30:00",
+                status: "Disponible",
+                type: "TXT",
+                size_label: "184 Ko",
+                size_bytes: 188416,
+                tags: ["qualite", "echantillonnage", "procedure"],
+                description: "Guide operationnel pour garantir la tracabilite et la representativite des prelevements.",
+                excerpt: "Chaque echantillon doit etre identifie par station, date, profondeur et responsable de collecte afin de garantir la tracabilite.",
+            },
+            {
+                name: "convention_partenariat_fao.pdf",
+                title: "Convention partenariat FAO",
+                category: "Partenariats",
+                author: "Direction Cooperation",
+                date: "2026-08-09T16:00:00",
+                modified_at: "2026-08-09T16:00:00",
+                status: "Archivé",
+                type: "PDF",
+                size_label: "1.6 Mo",
+                size_bytes: 1677721,
+                tags: ["FAO", "partenariat", "cooperation"],
+                description: "Convention cadre pour l'appui scientifique et l'echange de donnees halieutiques.",
+                excerpt: "La convention prevoit un partage structure des donnees scientifiques et un programme de formation conjoint.",
+            },
+            {
+                name: "rapport_campagne_oceanographique_printemps_2026.docx",
+                title: "Rapport campagne oceanographique printemps 2026",
+                category: "Ressources",
+                author: "Mohamed Amrani",
+                date: "2026-08-06T10:15:00",
+                modified_at: "2026-08-06T10:15:00",
+                status: "Disponible",
+                type: "DOCX",
+                size_label: "3.4 Mo",
+                size_bytes: 3565158,
+                tags: ["campagne", "oceanographie", "ressources"],
+                description: "Synthese des mesures oceanographiques et observations de terrain realisees au printemps.",
+                excerpt: "Les profils de temperature et de salinite montrent une stratification marquee dans plusieurs stations du plateau continental.",
+            },
+            {
+                name: "plan_maintenance_capteurs_cotiers.xlsx.txt",
+                title: "Plan maintenance capteurs cotiers",
+                category: "Securite",
+                author: "Youssef Rami",
+                date: "2026-08-04T13:00:00",
+                modified_at: "2026-08-04T13:00:00",
+                status: "En revue",
+                type: "TXT",
+                size_label: "96 Ko",
+                size_bytes: 98304,
+                tags: ["capteurs", "maintenance", "cotiers"],
+                description: "Calendrier de controle et maintenance preventive des capteurs deployes en zone cotiere.",
+                excerpt: "Les capteurs cotiers doivent etre calibres selon un calendrier trimestriel afin de limiter les pertes de donnees.",
+            },
+            {
+                name: "note_methodologique_adn_environnemental.pdf",
+                title: "Note methodologique ADN environnemental",
+                category: "Qualite",
+                author: "Dr. Samira Idrissi",
+                date: "2026-07-30T09:40:00",
+                modified_at: "2026-07-30T09:40:00",
+                status: "Valide",
+                type: "PDF",
+                size_label: "740 Ko",
+                size_bytes: 757760,
+                tags: ["ADN", "methodologie", "qualite"],
+                description: "Protocole de collecte et analyse d'ADN environnemental pour suivi de biodiversite marine.",
+                excerpt: "La methode ADN environnemental complete les observations classiques et ameliore la detection d'especes rares.",
+            },
+            {
+                name: "fiche_risque_produits_chimiques_labo.docx",
+                title: "Fiche risque produits chimiques labo",
+                category: "Securite",
+                author: "Aicha Benali",
+                date: "2026-07-28T15:25:00",
+                modified_at: "2026-07-28T15:25:00",
+                status: "Rejete",
+                type: "DOCX",
+                size_label: "420 Ko",
+                size_bytes: 430080,
+                tags: ["risque", "chimique", "labo"],
+                description: "Fiche de controle des risques associes aux produits chimiques utilises en laboratoire.",
+                excerpt: "La version actuelle doit etre completee avec les seuils d'exposition et les procedures de stockage revisees.",
+            },
+            {
+                name: "programme_formation_observateurs_peche.pdf",
+                title: "Programme formation observateurs peche",
+                category: "Ressources",
+                author: "Khalid Bouzid",
+                date: "2026-07-24T11:10:00",
+                modified_at: "2026-07-24T11:10:00",
+                status: "Disponible",
+                type: "PDF",
+                size_label: "1.2 Mo",
+                size_bytes: 1258291,
+                tags: ["formation", "observateurs", "peche"],
+                description: "Programme pedagogique pour observateurs embarques et suivi de l'activite de peche.",
+                excerpt: "La formation insiste sur l'identification des especes, la collecte fiable des donnees et les regles de securite a bord.",
+            },
+            {
+                name: "strategie_digitalisation_donnees_halieutiques.docx",
+                title: "Strategie digitalisation donnees halieutiques",
+                category: "Qualite",
+                author: "Direction SI",
+                date: "2026-07-19T17:35:00",
+                modified_at: "2026-07-19T17:35:00",
+                status: "En attente",
+                type: "DOCX",
+                size_label: "860 Ko",
+                size_bytes: 880640,
+                tags: ["digitalisation", "donnees", "GED"],
+                description: "Feuille de route pour structurer, securiser et valoriser les donnees scientifiques.",
+                excerpt: "La digitalisation vise a centraliser les documents, reduire les doublons et ameliorer la recherche d'information.",
+            },
+            {
+                name: "protocole_suivi_qualite_eau_lagunes.pdf",
+                title: "Protocole suivi qualite eau lagunes",
+                category: "Qualite",
+                author: "Laboratoire Environnement",
+                date: "2026-07-15T12:05:00",
+                modified_at: "2026-07-15T12:05:00",
+                status: "Archivé",
+                type: "PDF",
+                size_label: "1.1 Mo",
+                size_bytes: 1153433,
+                tags: ["lagunes", "eau", "qualite"],
+                description: "Protocole historique de suivi physico-chimique des eaux lagunaires.",
+                excerpt: "Les parametres suivis incluent temperature, salinite, oxygene dissous et nutriments selon un rythme mensuel.",
+            },
+        ];
+        const mockActivities = [
+            { type: "upload", actor: "Aicha B.", label: "a importe", document: "Rapport annuel aquaculture 2025", time: "il y a 2h" },
+            { type: "validate", actor: "Dr. Samira I.", label: "a valide", document: "Note methodologique ADN environnemental", time: "il y a 5h" },
+            { type: "review", actor: "Mohamed A.", label: "a soumis en revue", document: "Etude stock sardine cote atlantique", time: "hier" },
+            { type: "edit", actor: "Service Qualite", label: "a modifie", document: "Guide qualite echantillonnage", time: "hier" },
+            { type: "archive", actor: "Direction Cooperation", label: "a archive", document: "Convention partenariat FAO", time: "il y a 3j" },
+            { type: "reject", actor: "Aicha B.", label: "a rejete", document: "Fiche risque produits chimiques labo", time: "il y a 4j" },
+        ];
+        const mockUsers = [
+            { name: "Aicha Benali", role: "Gestionnaire documentaire", lastLogin: "Aujourd'hui 09:12" },
+            { name: "Dr. Nadia El Fassi", role: "Lecteur", lastLogin: "Aujourd'hui 08:47" },
+            { name: "Mohamed Amrani", role: "Gestionnaire documentaire", lastLogin: "Hier 16:20" },
+            { name: "Youssef Rami", role: "Administrateur", lastLogin: "Hier 11:05" },
+            { name: "Samira Idrissi", role: "Lecteur", lastLogin: "15 aout 2026" },
+        ];
+
+        function icon(name) {
+            const paths = {
+                layout: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="18" height="7"></rect>',
+                folder: '<path d="M3 6h6l2 2h10v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>',
+                search: '<circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>',
+                bot: '<rect x="5" y="8" width="14" height="11" rx="2"></rect><path d="M12 4v4"></path><path d="M9 13h.01"></path><path d="M15 13h.01"></path>',
+                shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
+                upload: '<path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16v4H4v-4"></path>',
+                check: '<path d="M20 6 9 17l-5-5"></path>',
+                eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"></path><circle cx="12" cy="12" r="3"></circle>',
+                file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path>',
+                pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M7 16h2"></path><path d="M11 16h2"></path><path d="M15 16h2"></path>',
+                doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h8"></path>',
+                txt: '<path d="M4 4h16"></path><path d="M12 4v16"></path><path d="M8 20h8"></path>',
+                clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+                trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path>',
+                edit: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path>',
+                archive: '<rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><path d="M10 12h4"></path>',
+                alert: '<path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>',
+            };
+            return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.file}</svg>`;
+        }
+
+        function hydrateIcons() {
+            document.querySelectorAll("[data-icon]").forEach(element => {
+                element.innerHTML = icon(element.dataset.icon);
+            });
+        }
+
+        async function apiFetch(path, options = {}) {
+            const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+            let lastError = null;
+            for (const baseUrl of API_CANDIDATES) {
+                try {
+                    const response = await fetch(`${baseUrl}${normalizedPath}`, withAuth(options, normalizedPath));
+                    API_URL = baseUrl;
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error("API non joignable");
+        }
+
+        function withAuth(options = {}, path = "") {
+            const token = localStorage.getItem("gedJwtToken");
+            const headers = new Headers(options.headers || {});
+            if (token && !path.startsWith("/auth/login")) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
+            return { ...options, headers };
+        }
+
+        async function ensureSession() {
+            if (localStorage.getItem("gedJwtToken")) return;
+            const response = await apiFetch("/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: "admin@inrh.demo", password: "demo123" })
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            localStorage.setItem("gedJwtToken", data.token);
+            localStorage.setItem("gedUserName", data.user.name);
+            localStorage.setItem("gedUserRole", data.user.role);
+        }
+
+        function hydrateSessionUi() {
+            document.getElementById("sessionName").textContent = localStorage.getItem("gedUserName") || "Session locale";
+            document.getElementById("sessionRole").textContent = localStorage.getItem("gedUserRole") || "Administrateur";
+            document.getElementById("adminSession").textContent = localStorage.getItem("gedUserRole") || "Session active";
+        }
+
+        function showPage(page) {
+            for (const item of ["dashboard", "documents", "search", "assistant", "admin"]) {
+                document.getElementById(`${item}Page`).classList.toggle("active", item === page);
+                const navId = item === "dashboard" ? "navDashboard" : `nav${item[0].toUpperCase()}${item.slice(1)}`;
+                const nav = document.getElementById(navId);
+                if (nav) nav.classList.toggle("active", item === page);
+            }
+            if (page === "dashboard") loadDashboard();
+            if (page === "documents") loadDocuments(currentPage);
+            if (page === "admin") loadDashboard();
+        }
+
+        function focusUpload() {
+            setTimeout(() => document.getElementById("uploadPanel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+        }
+
+        function focusSearch() {
+            setTimeout(() => document.getElementById("query")?.focus(), 120);
+        }
+
+        function focusAssistant() {
+            setTimeout(() => document.getElementById("assistantQuestion")?.focus(), 120);
+        }
+
+        async function loadDashboard() {
+            try {
+                const [healthResponse, dashboardResponse] = await Promise.all([
+                    apiFetch("/health"),
+                    apiFetch("/dashboard")
+                ]);
+                document.getElementById("apiStatus").textContent = healthResponse.ok ? "Connecte" : "Indisponible";
+                if (!dashboardResponse.ok) throw new Error("Dashboard indisponible");
+                const data = await dashboardResponse.json();
+                const statusMap = Object.fromEntries((data.by_status || []).map(item => [item.label.toLowerCase(), item.count]));
+                document.getElementById("metricTotal").textContent = data.total_documents ?? 0;
+                document.getElementById("metricValidated").textContent = (statusMap["approuve"] || statusMap["valide"] || 0);
+                document.getElementById("metricPending").textContent = data.pending_documents ?? 0;
+                document.getElementById("metricArchived").textContent = statusMap["archive"] || 0;
+                renderRecentDocuments(data.recent_documents || []);
+                renderActivity(data.recent_activity || []);
+            } catch (error) {
+                document.getElementById("apiStatus").textContent = "Hors ligne";
+            }
+        }
+
+        function renderRecentDocuments(items) {
+            const target = document.getElementById("recentDocuments");
+            if (!items.length) {
+                target.innerHTML = '<div class="empty">Aucun document recent.</div>';
+                return;
+            }
+            target.innerHTML = items.map(doc => `
+                <div class="list-item">
+                    <div>
+                        <div class="item-title">${escapeHtml(doc.title)}</div>
+                        <div class="item-meta">${escapeHtml(doc.category)} · ${formatDate(doc.modified_at)}</div>
+                    </div>
+                    <span class="badge ${statusTone(doc.status)}">${escapeHtml(displayStatus(doc.status))}</span>
+                </div>
+            `).join("");
+        }
+
+        function renderActivity(items) {
+            const html = items.length ? items.map(action => `
+                <div class="list-item">
+                    <div>
+                        <div class="item-title">${escapeHtml(action.filename)}</div>
+                        <div class="item-meta">${escapeHtml(displayStatus(action.from_status))} -> ${escapeHtml(displayStatus(action.to_status))} · ${formatDateTime(action.created_at)}</div>
+                    </div>
+                </div>
+            `).join("") : '<div class="empty">Aucune activite recente.</div>';
+            document.getElementById("recentActivity").innerHTML = html;
+            document.getElementById("adminActivity").innerHTML = html;
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await apiFetch("/metadata/categories");
+                if (!response.ok) return;
+                const data = await response.json();
+                document.getElementById("docCategory").innerHTML = '<option value="all">Toutes categories</option>' +
+                    data.categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+            } catch (error) {}
+        }
+
+        async function loadDocuments(page = 1) {
+            currentPage = page;
+            const params = new URLSearchParams({
+                q: document.getElementById("docQuery").value,
+                file_type: document.getElementById("docType").value,
+                category: document.getElementById("docCategory").value,
+                sort_by: document.getElementById("docSort").value,
+                include_deleted: includeDeleted ? "true" : "false",
+                page: String(currentPage),
+                per_page: "8"
+            });
+            const table = document.getElementById("documentsTable");
+            table.innerHTML = '<tr><td colspan="5"><div class="empty">Chargement...</div></td></tr>';
+            try {
+                const response = await apiFetch(`/documents?${params.toString()}`);
+                if (!response.ok) throw new Error("Documents indisponibles");
+                const data = await response.json();
+                totalPages = data.pages;
+                document.getElementById("pageInfo").textContent = `${data.total} document(s)`;
+                renderDocuments(data.items || []);
+            } catch (error) {
+                table.innerHTML = `<tr><td colspan="5"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+            }
+        }
+
+        function renderDocuments(documents) {
+            const table = document.getElementById("documentsTable");
+            if (!documents.length) {
+                table.innerHTML = '<tr><td colspan="5"><div class="empty">Aucun document trouve.</div></td></tr>';
+                return;
+            }
+            table.innerHTML = documents.map(doc => `
+                <tr>
+                    <td>
+                        <div class="item-title">${escapeHtml(doc.title)}</div>
+                        <div class="item-meta">${escapeHtml(doc.author || "Auteur non renseigne")} · ${escapeHtml(doc.type)}</div>
+                        <div class="badge-row">${(doc.tags || []).slice(0, 3).map(tag => `<span class="badge">${escapeHtml(tag)}</span>`).join("")}</div>
+                    </td>
+                    <td>${escapeHtml(doc.category || "Non classe")}</td>
+                    <td><span class="badge ${statusTone(doc.status)}">${escapeHtml(displayStatus(doc.status))}</span></td>
+                    <td>${formatDate(doc.modified_at)}</td>
+                    <td><button class="secondary" onclick="openDocument('${escapeJs(doc.name)}')">Ouvrir</button></td>
+                </tr>
+            `).join("");
+        }
+
+        async function openDocument(filename) {
+            selectedDocumentName = filename;
+            document.getElementById("detailStatus").textContent = "Chargement";
+            const pane = document.getElementById("detailPane");
+            pane.innerHTML = '<div class="empty">Ouverture du document...</div>';
+            try {
+                const [previewResponse, metadataResponse, workflowResponse] = await Promise.all([
+                    apiFetch(`/documents/${encodeURIComponent(filename)}/preview`),
+                    apiFetch(`/documents/${encodeURIComponent(filename)}/metadata`),
+                    apiFetch(`/documents/${encodeURIComponent(filename)}/workflow`)
+                ]);
+                if (!previewResponse.ok || !metadataResponse.ok) throw new Error("Document indisponible");
+                const preview = await previewResponse.json();
+                const metadata = await metadataResponse.json();
+                const workflow = workflowResponse.ok ? await workflowResponse.json() : { steps: [], actions: [] };
+                document.getElementById("detailStatus").textContent = displayStatus(metadata.status);
+                pane.innerHTML = documentDetailHtml(preview, metadata, workflow);
+            } catch (error) {
+                pane.innerHTML = `<div class="empty error">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function documentDetailHtml(preview, metadata, workflow) {
+            const previewHtml = preview.mode === "embed"
+                ? `<iframe class="preview-frame" src="${API_URL}${preview.content}"></iframe>`
+                : preview.mode === "html"
+                    ? `<div class="preview-box">${preview.content}</div>`
+                    : `<div class="preview-box">${escapeHtml(preview.content)}</div>`;
+            return `
+                <div class="form-grid">
+                    <div>
+                        <div class="item-title">${escapeHtml(preview.name)}</div>
+                        <div class="item-meta">${escapeHtml(metadata.category)} · ${escapeHtml(displayStatus(metadata.status))}</div>
+                    </div>
+                    ${previewHtml}
+                    <div class="action-row">
+                        <a href="${API_URL}/documents/${encodeURIComponent(preview.name)}/download" download><button class="secondary">Telecharger</button></a>
+                        <button class="secondary" onclick="deleteDocument('${escapeJs(preview.name)}')">Supprimer</button>
+                    </div>
+                    <form class="form-grid" onsubmit="saveMetadata(event)">
+                        <div class="field"><label>Titre</label><input disabled value="${escapeAttribute(preview.name)}"></div>
+                        <div class="field"><label>Auteur</label><input id="metaAuthor" value="${escapeAttribute(metadata.author || "")}"></div>
+                        <div class="field"><label>Categorie</label><input id="metaCategory" value="${escapeAttribute(metadata.category || "Non classe")}"></div>
+                        <div class="field"><label>Statut</label>
+                            <select id="metaStatus">${["Brouillon", "En validation", "Approuve", "Archive"].map(status => `<option value="${status}" ${metadata.status === status ? "selected" : ""}>${displayStatus(status)}</option>`).join("")}</select>
+                        </div>
+                        <div class="field"><label>Description</label><textarea id="metaDescription">${escapeHtml(metadata.description || "")}</textarea></div>
+                        <div class="field"><label>Mots-cles</label><input id="metaTags" value="${escapeAttribute((metadata.tags || []).join(", "))}"></div>
+                        <button type="submit">Enregistrer</button>
+                        <div class="item-meta" id="metadataSaveState"></div>
+                    </form>
+                    <div>
+                        <h2>Workflow</h2>
+                        <div class="action-row">
+                            ${["Brouillon", "En validation", "Approuve", "Archive"].map(status => `<button class="secondary" onclick="transitionWorkflow('${status}')">${displayStatus(status)}</button>`).join("")}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveMetadata(event) {
+            event.preventDefault();
+            if (!selectedDocumentName) return;
+            const payload = {
+                category: document.getElementById("metaCategory").value,
+                author: document.getElementById("metaAuthor").value,
+                description: document.getElementById("metaDescription").value,
+                tags: document.getElementById("metaTags").value.split(",").map(tag => tag.trim()).filter(Boolean),
+                status: document.getElementById("metaStatus").value,
+                folder: "/",
+                allowed_roles: []
+            };
+            const response = await apiFetch(`/documents/${encodeURIComponent(selectedDocumentName)}/metadata`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById("metadataSaveState").textContent = response.ok ? "Modifications enregistrees." : "Erreur d'enregistrement.";
+            await loadDocuments(currentPage);
+            await loadDashboard();
+        }
+
+        async function transitionWorkflow(status) {
+            if (!selectedDocumentName) return;
+            await apiFetch(`/documents/${encodeURIComponent(selectedDocumentName)}/workflow`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status, comment: "Changement depuis l'interface", actor: "Administrateur GED" })
+            });
+            await openDocument(selectedDocumentName);
+            await loadDashboard();
+        }
+
+        async function deleteDocument(filename) {
+            if (!confirm("Placer ce document dans la corbeille ?")) return;
+            await apiFetch(`/documents/${encodeURIComponent(filename)}`, { method: "DELETE" });
+            await loadDocuments(currentPage);
+            document.getElementById("detailPane").innerHTML = '<div class="empty">Document place dans la corbeille.</div>';
+        }
+
+        function toggleTrash() {
+            includeDeleted = !includeDeleted;
+            document.getElementById("trashToggle").textContent = includeDeleted ? "Documents actifs" : "Corbeille";
+            loadDocuments(1);
+        }
+
+        function changePage(delta) {
+            const next = Math.max(1, Math.min(totalPages, currentPage + delta));
+            if (next !== currentPage) loadDocuments(next);
+        }
+
+        function addFiles(files) {
+            const incoming = Array.from(files);
+            selectedFiles = [...selectedFiles, ...incoming.filter(file => acceptedExtensions.some(ext => file.name.toLowerCase().endsWith(ext)))];
+            selectedFiles = selectedFiles.filter((file, index, list) => list.findIndex(item => item.name === file.name && item.size === file.size) === index);
+            renderSelectedFiles();
+        }
+
+        function renderSelectedFiles() {
+            uploadBtn.disabled = selectedFiles.length === 0;
+            fileList.innerHTML = selectedFiles.length ? selectedFiles.map(file => `
+                <div class="list-item">
+                    <div>
+                        <div class="item-title">${escapeHtml(file.name)}</div>
+                        <div class="item-meta">${formatBytes(file.size)}</div>
+                    </div>
+                    <span class="badge">Pret</span>
+                </div>
+            `).join("") : '<div class="empty">Aucun fichier selectionne.</div>';
+        }
+
+        async function uploadSelectedFiles() {
+            uploadBtn.disabled = true;
+            for (const file of selectedFiles) {
+                await uploadOneFile(file);
+            }
+            clearSelectedFiles();
+            await loadDocuments(1);
+            await loadDashboard();
+        }
+
+        function uploadOneFile(file) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", `${API_URL}/upload?filename=${encodeURIComponent(file.name)}`);
+                xhr.setRequestHeader("Content-Type", "application/octet-stream");
+                const token = localStorage.getItem("gedJwtToken");
+                if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+                xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Import impossible"));
+                xhr.onerror = () => reject(new Error("API non joignable"));
+                xhr.send(file);
+            });
+        }
+
+        function clearSelectedFiles() {
+            selectedFiles = [];
+            fileInput.value = "";
+            renderSelectedFiles();
+        }
+
+        async function doSearch() {
+            const query = document.getElementById("query").value.trim();
+            if (!query) return;
+            const target = document.getElementById("results");
+            const button = document.getElementById("searchBtn");
+            button.disabled = true;
+            target.innerHTML = '<div class="empty">Recherche en cours...</div>';
+            try {
+                const response = await apiFetch("/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query, top_k: 8, mode: "hybrid" })
+                });
+                if (!response.ok) throw new Error("Recherche indisponible");
+                const data = await response.json();
+                document.getElementById("resultsTitle").textContent = `${data.results.length} resultat(s)`;
+                renderSearchResults(data.results || []);
+            } catch (error) {
+                target.innerHTML = `<div class="empty error">${escapeHtml(error.message)}</div>`;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function renderSearchResults(results) {
+            document.getElementById("results").innerHTML = results.length ? results.map(result => `
+                <article class="result-card">
+                    <div class="result-title">${escapeHtml(result.filename)}</div>
+                    <div class="item-meta">${escapeHtml(result.source_type.toUpperCase())} · <span class="score-pill">${Math.round(result.score * 100)}% pertinent</span></div>
+                    <p class="result-excerpt">${escapeHtml(result.text_preview)}</p>
+                </article>
+            `).join("") : '<div class="empty">Aucun resultat trouve.</div>';
+        }
+
+        function useExample(query) {
+            document.getElementById("query").value = query;
+            doSearch();
+        }
+
+        async function askAssistant() {
+            const input = document.getElementById("assistantQuestion");
+            const question = input.value.trim();
+            if (!question) return;
+            input.value = "";
+            appendMessage("user", question);
+            appendMessage("assistant", "Je cherche dans les documents...");
+            document.getElementById("assistantBtn").disabled = true;
+            try {
+                const response = await apiFetch("/assistant/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question, top_k: 5 })
+                });
+                if (!response.ok) throw new Error("Assistant indisponible");
+                const data = await response.json();
+                replaceLastAssistantMessage(data.answer);
+                renderAssistantSources(data.sources || []);
+            } catch (error) {
+                replaceLastAssistantMessage(error.message);
+            } finally {
+                document.getElementById("assistantBtn").disabled = false;
+            }
+        }
+
+        function appendMessage(type, text) {
+            const messages = document.getElementById("assistantMessages");
+            messages.insertAdjacentHTML("beforeend", `<div class="message ${type}">${escapeHtml(text)}</div>`);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function replaceLastAssistantMessage(text) {
+            const messages = Array.from(document.querySelectorAll(".message.assistant"));
+            const last = messages[messages.length - 1];
+            if (last) last.textContent = text;
+        }
+
+        function renderAssistantSources(sources) {
+            const target = document.getElementById("assistantSources");
+            target.innerHTML = sources.length ? sources.map(source => `
+                <div class="list-item">
+                    <div>
+                        <div class="item-title">${escapeHtml(source.filename)}</div>
+                        <div class="item-meta">${Math.round(source.score * 100)}% pertinent</div>
+                    </div>
+                </div>
+            `).join("") : '<div class="empty">Aucune source citee.</div>';
+        }
+
+        function displayStatus(status) {
+            const map = {
+                "Indexe": "Disponible",
+                "Soumis": "En validation",
+                "En validation": "En validation",
+                "Approuve": "Valide",
+                "Valide": "Valide",
+                "Archive": "Archive",
+                "Rejete": "Rejete",
+                "Brouillon": "Brouillon"
+            };
+            return map[status] || status || "Disponible";
+        }
+
+        function statusTone(status) {
+            const value = String(status || "").toLowerCase();
+            if (value.includes("approuve") || value.includes("valide")) return "success";
+            if (value.includes("validation") || value.includes("soumis") || value.includes("brouillon")) return "warning";
+            if (value.includes("rejete")) return "danger";
+            return "";
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+        }
+
+        function formatDateTime(value) {
+            if (!value) return "-";
+            return new Date(value).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return `${bytes} o`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+        }
+
+        function escapeHtml(value) {
+            const div = document.createElement("div");
+            div.textContent = String(value ?? "");
+            return div.innerHTML;
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/"/g, "&quot;");
+        }
+
+        function escapeJs(value) {
+            return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        }
+
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") fileInput.click();
+        });
+        dropzone.addEventListener("dragover", event => {
+            event.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+        dropzone.addEventListener("drop", event => {
+            event.preventDefault();
+            dropzone.classList.remove("dragover");
+            addFiles(event.dataTransfer.files);
+        });
+        fileInput.addEventListener("change", () => addFiles(fileInput.files));
+        document.getElementById("query").addEventListener("keydown", event => {
+            if (event.key === "Enter") doSearch();
+        });
+        document.getElementById("assistantQuestion").addEventListener("keydown", event => {
+            if (event.key === "Enter") askAssistant();
+        });
+
+        ensureSession().finally(() => {
+            hydrateSessionUi();
+            renderSelectedFiles();
+            loadCategories();
+            loadDashboard();
+            loadDocuments(1);
+        });
+    </script>
+</body>
+</html>

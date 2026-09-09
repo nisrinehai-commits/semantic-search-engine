@@ -1,0 +1,30 @@
+[
+  {
+    "method": "semantique",
+    "precision_at_k": 0.44,
+    "recall_at_k": 0.967,
+    "avg_response_time_ms": 1898.4,
+    "n_queries": 10
+  },
+  {
+    "method": "lexical",
+    "precision_at_k": 0.42,
+    "recall_at_k": 1.0,
+    "avg_response_time_ms": 46.2,
+    "n_queries": 10
+  },
+  {
+    "method": "hybride",
+    "precision_at_k": 0.46,
+    "recall_at_k": 1.0,
+    "avg_response_time_ms": 44.5,
+    "n_queries": 10
+  },
+  {
+    "method": "tfidf_baseline",
+    "precision_at_k": 0.28,
+    "recall_at_k": 1.0,
+    "avg_response_time_ms": 2.4,
+    "n_queries": 10
+  }
+]
