@@ -46,3 +46,8 @@ def test_search_hybrid_mode_returns_final_scores():
     results = search("peche durable", top_k=3, mode="hybrid", semantic_weight=0.7, keyword_weight=0.3)
     assert len(results) == 3
     assert all(0 <= result["score"] <= 1 for result in results)
+
+
+def test_search_prefers_fishing_document_for_fishing_query():
+    results = search("rapport peche", top_k=5, mode="hybrid")
+    assert results[0]["filename"] == "doc_peche_durable_docx.txt"

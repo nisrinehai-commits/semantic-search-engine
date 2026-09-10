@@ -11,8 +11,8 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Texte de la requete utilisateur")
     top_k: int = Field(default=3, ge=1, le=20, description="Nombre de resultats a retourner")
     mode: str = Field(default="hybrid", description="Mode : semantic, keyword ou hybrid")
-    semantic_weight: float = Field(default=0.7, ge=0, le=1, description="Poids du score semantique")
-    keyword_weight: float = Field(default=0.3, ge=0, le=1, description="Poids du score mots-cles")
+    semantic_weight: float = Field(default=0.35, ge=0, le=1, description="Poids du score semantique")
+    keyword_weight: float = Field(default=0.65, ge=0, le=1, description="Poids du score mots-cles")
 
 
 class SearchResult(BaseModel):

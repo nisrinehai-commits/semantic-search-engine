@@ -10,6 +10,7 @@ Modes supportes :
 import json
 import math
 import re
+import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -57,14 +58,20 @@ def search(
     safe_top_k = min(top_k, len(metadata))
     semantic_scores = semantic_search_scores(query, index, metadata)
     keyword_scores = bm25_scores(query, metadata)
+    overlap_scores = query_overlap_scores(query, metadata)
+    coverage_scores = query_coverage_scores(query, metadata)
+    title_bonus_scores = query_title_bonus(query, metadata)
+    keyword_scores = (0.7 * keyword_scores) + (0.3 * overlap_scores)
 
     if mode == "semantic":
         final_scores = semantic_scores
     elif mode == "keyword":
         final_scores = keyword_scores
     else:
-        final_scores = (semantic_weight * semantic_scores) + (keyword_weight * keyword_scores)
+        base_score = (semantic_weight * semantic_scores) + (keyword_weight * keyword_scores)
+        final_scores = (0.75 * base_score) + (0.25 * coverage_scores) + (0.5 * title_bonus_scores)
 
+    final_scores = normalize_scores(final_scores)
     ranked_indices = np.argsort(final_scores)[::-1][:safe_top_k]
 
     results = []
@@ -148,6 +155,65 @@ def bm25_scores(query: str, metadata: list[dict]) -> np.ndarray:
     return normalize_scores(np.array(scores, dtype="float32"))
 
 
+def query_overlap_scores(query: str, metadata: list[dict]) -> np.ndarray:
+    """Bonus lexical sur les mots-clés réellement présents dans le document."""
+    query_terms = set(tokenize(query))
+    if not query_terms:
+        return np.zeros(len(metadata), dtype="float32")
+
+    overlaps = []
+    for item in metadata:
+        doc_terms = set(tokenize(item["text_preview"]))
+        if not doc_terms:
+            overlaps.append(0.0)
+            continue
+        overlap = len(query_terms & doc_terms) / len(query_terms)
+        overlaps.append(float(overlap))
+
+    return np.array(overlaps, dtype="float32")
+
+
+def query_coverage_scores(query: str, metadata: list[dict]) -> np.ndarray:
+    """Couverture de la requête par le document : proportion de mots-clés réellement présents."""
+    query_terms = set(tokenize(query))
+    if not query_terms:
+        return np.zeros(len(metadata), dtype="float32")
+
+    scores = []
+    for item in metadata:
+        doc_terms = set(tokenize(item["text_preview"]))
+        doc_terms |= set(tokenize(item.get("filename", "")))
+        if not doc_terms:
+            scores.append(0.0)
+            continue
+        coverage = len(query_terms & doc_terms) / len(query_terms)
+        scores.append(float(coverage))
+
+    return np.array(scores, dtype="float32")
+
+
+def query_title_bonus(query: str, metadata: list[dict]) -> np.ndarray:
+    """Bonus pour les documents dont le titre ou l'introduction contient les mots-clés de la requête."""
+    query_terms = set(tokenize(query))
+    if not query_terms:
+        return np.zeros(len(metadata), dtype="float32")
+
+    bonuses = []
+    for item in metadata:
+        text = item.get("text_preview", "")
+        title = text.splitlines()[0] if text else ""
+        title_tokens = set(tokenize(title))
+        filename_tokens = set(tokenize(item.get("filename", "")))
+        terms = title_tokens | filename_tokens
+        if not terms:
+            bonuses.append(0.0)
+            continue
+        match_ratio = len(query_terms & terms) / len(query_terms)
+        bonuses.append(float(match_ratio))
+
+    return np.array(bonuses, dtype="float32")
+
+
 def tfidf_scores(query: str, metadata: list[dict]) -> np.ndarray:
     """Repli lexical si l'embedding local n'est pas disponible."""
     corpus = [item["text_preview"] for item in metadata]
@@ -162,7 +228,11 @@ def tfidf_scores(query: str, metadata: list[dict]) -> np.ndarray:
 
 def tokenize(text: str) -> list[str]:
     """Tokenisation simple compatible francais sans dependance externe."""
-    return re.findall(r"\w+", text.lower())
+    if not text:
+        return []
+    normalized = unicodedata.normalize("NFD", text.lower())
+    normalized = normalized.encode("ascii", "ignore").decode("ascii")
+    return re.findall(r"\w+", normalized)
 
 
 def normalize_scores(scores: np.ndarray) -> np.ndarray:
@@ -193,7 +263,7 @@ def normalize_weights(semantic_weight: float, keyword_weight: float, mode: str) 
     keyword_weight = max(0.0, float(keyword_weight))
     total = semantic_weight + keyword_weight
     if total == 0:
-        return 0.7, 0.3
+        return 0.35, 0.65
     return semantic_weight / total, keyword_weight / total
 
 

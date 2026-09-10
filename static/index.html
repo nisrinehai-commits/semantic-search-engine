@@ -146,6 +146,31 @@
         }
         .session-name { font-weight: 750; font-size: 0.9rem; }
         .session-role { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
+        .session-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; }
+        .session-actions button { min-height: 30px; padding: 0 8px; font-size: 0.78rem; }
+        .login-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(247, 248, 248, 0.92);
+            backdrop-filter: blur(10px);
+        }
+        .login-screen[hidden], .modal[hidden] { display: none; }
+        .login-card { width: min(100%, 440px); padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+        .login-card .brand { padding: 0 0 22px; }
+        .login-card h1 { font-size: 1.7rem; }
+        .login-error { min-height: 20px; margin-top: 8px; color: var(--danger); font-size: 0.88rem; }
+        .demo-accounts { display: grid; gap: 7px; margin-top: 20px; }
+        .demo-accounts button { text-align: left; }
+        .modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 18px; background: rgba(23, 28, 27, 0.42); }
+        .modal-dialog { width: min(100%, 760px); max-height: min(760px, calc(100vh - 36px)); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+        .modal-header { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 16px; border-bottom: 1px solid var(--line); }
+        .modal-header button { flex: 0 0 auto; }
+        .demo-notice { margin-bottom: 14px; padding: 10px 12px; border-left: 3px solid var(--warning); border-radius: 4px; background: #fff8ea; color: #6f521c; font-size: 0.86rem; line-height: 1.45; }
+        [hidden] { display: none !important; }
         .main {
             min-width: 0;
             padding: 24px;
@@ -308,7 +333,7 @@
             justify-content: center;
             flex: 0 0 auto;
         }
-        .icon svg {
+        .icon svg, .icon-box svg, .file-icon svg, button.secondary svg {
             width: 18px;
             height: 18px;
             stroke: currentColor;
@@ -346,6 +371,18 @@
             background: var(--surface-soft);
             color: var(--accent);
         }
+        button.secondary svg { vertical-align: middle; }
+        .result-title {
+            min-height: auto;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: var(--ink);
+            font: inherit;
+            font-weight: 760;
+            text-align: left;
+        }
+        .result-title:hover { color: var(--accent); }
         .mini-chart {
             display: grid;
             gap: 10px;
@@ -623,6 +660,28 @@
     </style>
 </head>
 <body>
+    <section class="login-screen" id="loginScreen" hidden aria-labelledby="loginTitle">
+        <div class="login-card">
+            <div class="brand">
+                <div class="brand-mark">IN</div>
+                <div><div class="brand-title">GED INRH</div><div class="brand-subtitle">Acces documentaire securise</div></div>
+            </div>
+            <div class="eyebrow">Connexion</div>
+            <h1 id="loginTitle">Bienvenue.</h1>
+            <p class="subtitle">Connectez-vous avec un compte attribue par l'administration de l'INRH.</p>
+            <form class="form-grid" style="margin-top:20px;" onsubmit="login(event)">
+                <div class="field"><label for="loginEmail">Adresse e-mail</label><input id="loginEmail" type="email" autocomplete="email" required placeholder="nom@inrh.ma"></div>
+                <div class="field"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Votre mot de passe"></div>
+                <button id="loginBtn" type="submit">Se connecter</button>
+                <div class="login-error" id="loginError" role="alert"></div>
+            </form>
+            <div class="demo-accounts">
+                <span class="item-meta">Comptes de demonstration (mot de passe : demo123)</span>
+                <button class="secondary" type="button" onclick="fillDemoAccount('admin@inrh.demo')">Administrateur GED</button>
+                <button class="secondary" type="button" onclick="fillDemoAccount('employe@inrh.demo')">Employe INRH</button>
+            </div>
+        </div>
+    </section>
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand">
@@ -637,11 +696,12 @@
                 <button id="navDocuments" onclick="showPage('documents')"><span class="icon" data-icon="folder"></span>Documents</button>
                 <button id="navSearch" onclick="showPage('search')"><span class="icon" data-icon="search"></span>Recherche</button>
                 <button id="navAssistant" onclick="showPage('assistant')"><span class="icon" data-icon="bot"></span>Assistant IA</button>
-                <button id="navAdmin" onclick="showPage('admin')"><span class="icon" data-icon="shield"></span>Admin</button>
+                <button id="navAdmin" onclick="showPage('admin')"><span class="icon" data-icon="shield"></span>Administration</button>
             </nav>
             <div class="sidebar-footer">
                 <div class="session-name" id="sessionName">Session locale</div>
                 <div class="session-role" id="sessionRole">Initialisation...</div>
+                <div class="session-actions"><span class="item-meta" id="workspaceLabel">Espace utilisateur</span><button class="ghost" onclick="logout()">Deconnexion</button></div>
             </div>
         </aside>
 
@@ -883,6 +943,31 @@
                 </div>
                 <section class="panel" style="margin-top:16px;">
                     <div class="panel-header">
+                        <div><h2>Gouvernance documentaire</h2><div class="item-meta">Recherchez les documents actifs, archives ou places dans la corbeille.</div></div>
+                        <span class="status-pill" id="adminDocumentCount">-</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar" style="grid-template-columns:minmax(220px,1fr) 190px 180px; margin-bottom:14px;">
+                            <input id="adminDocQuery" placeholder="Rechercher un document..." oninput="renderAdminDocuments()">
+                            <select id="adminDocScope" onchange="renderAdminDocuments()">
+                                <option value="active">Documents actifs</option>
+                                <option value="archived">Documents archives</option>
+                                <option value="trash">Corbeille restaurable</option>
+                                <option value="all">Tous les documents</option>
+                            </select>
+                            <select id="adminDocCategory" onchange="renderAdminDocuments()"><option value="all">Toutes categories</option></select>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding:0;">
+                        <table class="document-table">
+                            <thead><tr><th>Document</th><th>Etat</th><th>Responsable</th><th>Derniere action</th><th>Actions</th></tr></thead>
+                            <tbody id="adminDocumentsTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="panel-body"><div class="demo-notice">La corbeille est reversible : un document supprime reste conserve et peut etre restaure par un administrateur.</div></div>
+                </section>
+                <section class="panel" style="margin-top:16px;">
+                    <div class="panel-header">
                         <h2>Utilisateurs</h2>
                         <span class="status-pill">Gouvernance</span>
                     </div>
@@ -910,6 +995,13 @@
         </main>
     </div>
 
+    <section class="modal" id="searchPreviewModal" hidden aria-modal="true" role="dialog" aria-labelledby="searchPreviewTitle">
+        <div class="modal-dialog">
+            <div class="modal-header"><div><div class="eyebrow">Apercu de resultat</div><h2 id="searchPreviewTitle">Document</h2></div><button class="secondary" aria-label="Fermer l'apercu" onclick="closeSearchPreview()">Fermer</button></div>
+            <div class="panel-body" id="searchPreviewContent"></div>
+        </div>
+    </section>
+
     <script>
         const API_CANDIDATES = [
             window.location.origin,
@@ -927,6 +1019,7 @@
         ].filter((value, index, values) => value && value !== "null" && values.indexOf(value) === index);
         let API_URL = API_CANDIDATES[0] || "http://127.0.0.1:8019";
         let selectedFiles = [];
+        let rejectedFiles = [];
         let currentPage = 1;
         let totalPages = 1;
         let includeDeleted = false;
@@ -1134,6 +1227,7 @@
             { name: "Youssef Rami", role: "Administrateur", lastLogin: "Hier 11:05" },
             { name: "Samira Idrissi", role: "Lecteur", lastLogin: "15 aout 2026" },
         ];
+        mockDocuments.forEach(document => { document.isDemo = true; });
 
         function icon(name) {
             const paths = {
@@ -1151,6 +1245,7 @@
                 txt: '<path d="M4 4h16"></path><path d="M12 4v16"></path><path d="M8 20h8"></path>',
                 clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
                 trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path>',
+                download: '<path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path>',
                 edit: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path>',
                 archive: '<rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><path d="M10 12h4"></path>',
                 alert: '<path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>',
@@ -1640,6 +1735,558 @@
             return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
         }
 
+        // Demo workspace: one coherent data set drives every product screen.
+        function normalizeText(value) {
+            return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function fileIcon(type) {
+            const map = { PDF: "pdf", DOCX: "doc", TXT: "txt" };
+            return `<span class="file-icon">${icon(map[type] || "file")}</span>`;
+        }
+
+        function statusIcon(status) {
+            const value = normalizeText(status);
+            if (value.includes("rejete")) return "alert";
+            if (value.includes("archive")) return "archive";
+            if (value.includes("attente") || value.includes("revue") || value.includes("validation")) return "clock";
+            return "check";
+        }
+
+        function statusBadge(status) {
+            return `<span class="badge ${statusTone(status)}"><span class="icon">${icon(statusIcon(status))}</span>${escapeHtml(displayStatus(status))}</span>`;
+        }
+
+        function activeDocuments() {
+            return mockDocuments.filter(document => includeDeleted ? document.deleted : !document.deleted);
+        }
+
+        function currentRole() {
+            return localStorage.getItem("gedUserRole") || "Employe";
+        }
+
+        function isAdministrator() {
+            return currentRole() === "Administrateur";
+        }
+
+        function canManageDocuments() {
+            return ["Administrateur", "Responsable qualite"].includes(currentRole());
+        }
+
+        function applyRoleAccess() {
+            const isAdmin = isAdministrator();
+            document.getElementById("navAdmin").hidden = !isAdmin;
+            document.getElementById("workspaceLabel").textContent = isAdmin ? "Espace administration" : "Espace employe";
+            document.body.classList.toggle("employee-mode", !isAdmin);
+            if (!isAdmin && document.getElementById("adminPage").classList.contains("active")) showPage("dashboard");
+        }
+
+        function hydrateSessionUi() {
+            const name = localStorage.getItem("gedUserName") || "Utilisateur INRH";
+            const role = currentRole();
+            document.getElementById("sessionName").textContent = name;
+            document.getElementById("sessionRole").textContent = role;
+            document.getElementById("adminSession").textContent = role;
+            applyRoleAccess();
+        }
+
+        async function ensureSession() {
+            return Boolean(localStorage.getItem("gedJwtToken"));
+        }
+
+        function fillDemoAccount(email) {
+            document.getElementById("loginEmail").value = email;
+            document.getElementById("loginPassword").value = "demo123";
+            document.getElementById("loginError").textContent = "";
+        }
+
+        async function login(event) {
+            event.preventDefault();
+            const error = document.getElementById("loginError");
+            const button = document.getElementById("loginBtn");
+            error.textContent = "";
+            button.disabled = true;
+            try {
+                const response = await apiFetch("/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: document.getElementById("loginEmail").value, password: document.getElementById("loginPassword").value })
+                });
+                if (!response.ok) throw new Error("Adresse e-mail ou mot de passe incorrect.");
+                const data = await response.json();
+                localStorage.setItem("gedJwtToken", data.token);
+                localStorage.setItem("gedUserName", data.user.name);
+                localStorage.setItem("gedUserRole", data.user.role);
+                document.getElementById("loginScreen").hidden = true;
+                initializeWorkspace();
+            } catch (loginError) {
+                error.textContent = loginError.message || "Connexion impossible.";
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("gedJwtToken");
+            localStorage.removeItem("gedUserName");
+            localStorage.removeItem("gedUserRole");
+            document.getElementById("loginPassword").value = "";
+            document.getElementById("loginError").textContent = "";
+            document.getElementById("loginScreen").hidden = false;
+        }
+
+        function initializeWorkspace() {
+            hydrateIcons();
+            hydrateSessionUi();
+            renderSelectedFiles();
+            loadCategories();
+            loadDashboard();
+            loadDocuments(1);
+            renderAssistantExamples();
+        }
+
+        function showPage(page) {
+            if (page === "admin" && !isAdministrator()) page = "dashboard";
+            ["dashboard", "documents", "search", "assistant", "admin"].forEach(item => {
+                document.getElementById(`${item}Page`).classList.toggle("active", item === page);
+                const navId = item === "dashboard" ? "navDashboard" : `nav${item[0].toUpperCase()}${item.slice(1)}`;
+                const nav = document.getElementById(navId);
+                if (nav) nav.classList.toggle("active", item === page);
+            });
+            if (page === "dashboard") loadDashboard();
+            if (page === "documents") loadDocuments(currentPage);
+            if (page === "admin") loadDashboard();
+        }
+
+        function addActivity(type, label, document) {
+            mockActivities.unshift({ type, actor: "Administrateur GED", label, document, time: "a l'instant" });
+        }
+
+        function renderDashboardFromMock() {
+            const documents = mockDocuments.filter(document => !document.deleted);
+            const validated = documents.filter(document => ["disponible", "valide"].includes(normalizeText(document.status))).length;
+            const pending = documents.filter(document => ["en attente", "en revue", "en validation"].includes(normalizeText(document.status))).length;
+            const archived = documents.filter(document => normalizeText(document.status).includes("archive")).length;
+            document.getElementById("metricTotal").textContent = documents.length;
+            document.getElementById("metricValidated").textContent = validated;
+            document.getElementById("metricPending").textContent = pending;
+            document.getElementById("metricArchived").textContent = archived;
+            renderRecentDocuments([...documents].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5));
+            renderActivity(mockActivities.slice(0, 6));
+            renderCategoryChart(documents);
+            renderUsers();
+        }
+
+        function renderCategoryChart(documents) {
+            const target = document.getElementById("categoryChart");
+            if (!target) return;
+            const counts = documents.reduce((result, document) => {
+                result[document.category] = (result[document.category] || 0) + 1;
+                return result;
+            }, {});
+            const maximum = Math.max(...Object.values(counts), 1);
+            target.innerHTML = Object.entries(counts).map(([category, count]) => `
+                <div class="chart-row">
+                    <span>${escapeHtml(category)}</span>
+                    <div class="chart-track"><div class="chart-fill" style="width:${Math.round((count / maximum) * 100)}%"></div></div>
+                    <strong>${count}</strong>
+                </div>
+            `).join("");
+        }
+
+        function renderRecentDocuments(items) {
+            const target = document.getElementById("recentDocuments");
+            target.innerHTML = items.length ? items.map(document => `
+                <div class="list-item">
+                    <div class="document-title-cell">${fileIcon(document.type)}<div><div class="item-title">${escapeHtml(document.title)}</div><div class="item-meta">${escapeHtml(document.category)} - ${formatDate(document.date)}</div></div></div>
+                    ${statusBadge(document.status)}
+                </div>
+            `).join("") : '<div class="empty">Aucun document recent.</div>';
+        }
+
+        function activityIcon(type) {
+            return ({ upload: "upload", validate: "check", review: "clock", edit: "edit", archive: "archive", reject: "alert" })[type] || "file";
+        }
+
+        function renderActivity(items) {
+            const html = items.length ? items.map(action => `
+                <div class="list-item">
+                    <div class="document-title-cell"><span class="icon-box">${icon(activityIcon(action.type))}</span><div><div class="item-title">${escapeHtml(action.actor)} ${escapeHtml(action.label)}</div><div class="item-meta">${escapeHtml(action.document)} - ${escapeHtml(action.time)}</div></div></div>
+                </div>
+            `).join("") : '<div class="empty">Aucune activite recente.</div>';
+            document.getElementById("recentActivity").innerHTML = html;
+            document.getElementById("adminActivity").innerHTML = html;
+        }
+
+        function renderUsers() {
+            const target = document.getElementById("usersTable");
+            if (!target) return;
+            target.innerHTML = mockUsers.map(user => `<tr><td><div class="item-title">${escapeHtml(user.name)}</div></td><td><span class="badge">${escapeHtml(user.role)}</span></td><td>${escapeHtml(user.lastLogin)}</td></tr>`).join("");
+        }
+
+        function renderAdminDocuments() {
+            const target = document.getElementById("adminDocumentsTable");
+            if (!target || !isAdministrator()) return;
+            const query = normalizeText(document.getElementById("adminDocQuery").value);
+            const scope = document.getElementById("adminDocScope").value;
+            const category = document.getElementById("adminDocCategory").value;
+            const documents = mockDocuments.filter(doc => {
+                const isArchived = normalizeText(doc.status).includes("archive");
+                const inScope = scope === "trash" ? doc.deleted : scope === "archived" ? !doc.deleted && isArchived : scope === "active" ? !doc.deleted && !isArchived : true;
+                const searchable = normalizeText([doc.title, doc.author, doc.category, doc.tags.join(" ")].join(" "));
+                return inScope && (!query || searchable.includes(query)) && (category === "all" || doc.category === category);
+            });
+            document.getElementById("adminDocumentCount").textContent = `${documents.length} document(s)`;
+            target.innerHTML = documents.length ? documents.map(doc => `
+                <tr>
+                    <td><div class="document-title-cell">${fileIcon(doc.type)}<div><div class="item-title">${escapeHtml(doc.title)}</div><div class="item-meta">${escapeHtml(doc.category)} - ${escapeHtml(doc.size_label)}</div></div></div></td>
+                    <td>${doc.deleted ? '<span class="badge danger">Dans la corbeille</span>' : statusBadge(doc.status)}</td>
+                    <td>${escapeHtml(doc.deleted_by || doc.author)}</td>
+                    <td>${doc.deleted ? `Supprime le ${formatDate(doc.deleted_at)}` : formatDate(doc.modified_at)}</td>
+                    <td><div class="action-row"><button class="secondary" title="Consulter" onclick="showPage('documents'); openDocument('${escapeJs(doc.name)}')">${icon("eye")}</button>${doc.deleted ? `<button class="secondary" title="Restaurer" onclick="restoreDocument('${escapeJs(doc.name)}')">${icon("archive")}</button>` : normalizeText(doc.status).includes("archive") ? `<button class="secondary" title="Replacer dans les documents actifs" onclick="setDocumentArchive('${escapeJs(doc.name)}', false)">${icon("check")}</button>` : `<button class="secondary" title="Archiver" onclick="setDocumentArchive('${escapeJs(doc.name)}', true)">${icon("archive")}</button>`}</div></td>
+                </tr>`).join("") : '<tr><td colspan="5"><div class="empty-state"><strong>Aucun document dans cette vue.</strong><span>Modifiez les filtres ou consultez un autre etat documentaire.</span></div></td></tr>';
+        }
+
+        function setDocumentArchive(filename, archived) {
+            if (!isAdministrator()) return;
+            const doc = getMockDocument(filename);
+            if (!doc || doc.deleted) return;
+            doc.status = archived ? "Archivé" : "Disponible";
+            doc.modified_at = new Date().toISOString();
+            addActivity("archive", archived ? "a archive" : "a reactive", doc.title);
+            loadDashboard(); loadDocuments(currentPage); renderAdminDocuments();
+        }
+
+        function restoreDocument(filename) {
+            if (!isAdministrator()) return;
+            const doc = getMockDocument(filename);
+            if (!doc || !doc.deleted) return;
+            doc.deleted = false;
+            doc.deleted_at = null;
+            doc.deleted_by = "";
+            doc.modified_at = new Date().toISOString();
+            addActivity("archive", "a restaure", doc.title);
+            loadDashboard(); loadDocuments(currentPage); renderAdminDocuments();
+        }
+
+        function loadDashboard() {
+            renderDashboardFromMock();
+            renderAdminDocuments();
+            apiFetch("/health").then(response => {
+                document.getElementById("apiStatus").textContent = response.ok ? "Connecte" : "Mode demo";
+            }).catch(() => {
+                document.getElementById("apiStatus").textContent = "Mode demo";
+            });
+        }
+
+        function loadCategories() {
+            const currentValue = document.getElementById("docCategory").value;
+            const categories = [...new Set(mockDocuments.map(document => document.category))].sort();
+            document.getElementById("docCategory").innerHTML = '<option value="all">Toutes categories</option>' + categories.map(category => `<option value="${escapeAttribute(category)}">${escapeHtml(category)}</option>`).join("");
+            document.getElementById("docCategory").value = categories.includes(currentValue) ? currentValue : "all";
+            const adminCategory = document.getElementById("adminDocCategory");
+            if (adminCategory) {
+                const adminValue = adminCategory.value;
+                adminCategory.innerHTML = '<option value="all">Toutes categories</option>' + categories.map(category => `<option value="${escapeAttribute(category)}">${escapeHtml(category)}</option>`).join("");
+                adminCategory.value = categories.includes(adminValue) ? adminValue : "all";
+            }
+        }
+
+        function filteredDocuments() {
+            const query = normalizeText(document.getElementById("docQuery").value);
+            const type = document.getElementById("docType").value;
+            const category = document.getElementById("docCategory").value;
+            const sort = document.getElementById("docSort").value;
+            const documents = activeDocuments().filter(document => {
+                const searchable = normalizeText([document.title, document.author, document.category, document.tags.join(" ")].join(" "));
+                return (!query || searchable.includes(query)) && (type === "all" || document.type === type) && (category === "all" || document.category === category);
+            });
+            return documents.sort((a, b) => {
+                if (sort === "name_asc") return a.title.localeCompare(b.title, "fr");
+                if (sort === "name_desc") return b.title.localeCompare(a.title, "fr");
+                if (sort === "type_asc") return a.type.localeCompare(b.type);
+                return new Date(b.date) - new Date(a.date);
+            });
+        }
+
+        function loadDocuments(page = 1) {
+            currentPage = page;
+            const table = document.getElementById("documentsTable");
+            table.innerHTML = '<tr><td colspan="6"><div class="skeleton" style="height:54px"></div></td></tr><tr><td colspan="6"><div class="skeleton" style="height:54px"></div></td></tr>';
+            window.setTimeout(() => {
+                const documents = filteredDocuments();
+                totalPages = Math.max(1, Math.ceil(documents.length / 8));
+                currentPage = Math.min(currentPage, totalPages);
+                const start = (currentPage - 1) * 8;
+                document.getElementById("pageInfo").textContent = `${documents.length} document(s)`;
+                renderDocuments(documents.slice(start, start + 8));
+            }, 150);
+        }
+
+        function renderDocuments(documents) {
+            const table = document.getElementById("documentsTable");
+            if (!documents.length) {
+                table.innerHTML = '<tr><td colspan="6"><div class="empty-state"><strong>Aucun document ne correspond aux filtres.</strong><span>Modifiez la recherche ou reinitialisez les filtres.</span></div></td></tr>';
+                return;
+            }
+            table.innerHTML = documents.map(document => `
+                <tr>
+                    <td><div class="document-title-cell">${fileIcon(document.type)}<div><div class="item-title">${escapeHtml(document.title)}</div><div class="item-meta">${escapeHtml(document.size_label)} - ${escapeHtml(document.type)}</div></div></div></td>
+                    <td>${escapeHtml(document.category)}</td>
+                    <td>${escapeHtml(document.author)}</td>
+                    <td>${statusBadge(document.status)}</td>
+                    <td>${formatDate(document.date)}</td>
+                    <td>${documentActions(document)}</td>
+                </tr>
+            `).join("");
+        }
+
+        function documentActions(document) {
+            const exportLabel = document.isDemo ? "Exporter la fiche de demonstration" : "Telecharger le fichier original";
+            return `<div class="action-row"><button class="secondary" title="Voir" aria-label="Voir ${escapeAttribute(document.title)}" onclick="openDocument('${escapeJs(document.name)}')">${icon("eye")}</button><button class="secondary" title="${exportLabel}" aria-label="${exportLabel}" onclick="downloadMockDocument('${escapeJs(document.name)}')">${icon("download")}</button>${canManageDocuments() ? `<button class="secondary" title="Supprimer" aria-label="Supprimer ${escapeAttribute(document.title)}" onclick="deleteDocument('${escapeJs(document.name)}')">${icon("trash")}</button>` : ""}</div>`;
+        }
+
+        function documentPreviewHtml(doc) {
+            if (!doc.isDemo && doc.file && doc.type === "PDF") {
+                return `<iframe class="preview-frame" src="${URL.createObjectURL(doc.file)}" title="Apercu PDF de ${escapeAttribute(doc.title)}"></iframe>`;
+            }
+            if (!doc.isDemo && doc.file && doc.type === "TXT") {
+                return `<div class="preview-box"><strong>Fichier texte importe</strong><p class="item-meta">Le fichier original peut etre telecharge depuis cette fiche.</p></div>`;
+            }
+            if (!doc.isDemo && doc.file) {
+                return `<div class="preview-box"><strong>Apercu DOCX</strong><p>Le navigateur ne convertit pas le DOCX directement. Telechargez le fichier original, ou utilisez l'apercu produit par le serveur apres traitement.</p></div>`;
+            }
+            return `<div class="preview-box"><div class="demo-notice">Fiche de demonstration : aucun fichier PDF, DOCX ou TXT original n'est joint a cette donnee. L'export disponible produit uniquement une fiche texte, afin de ne pas simuler un vrai PDF.</div><strong>Resume documentaire</strong><p>${escapeHtml(doc.excerpt)}</p><p class="item-meta">${escapeHtml(doc.description)}</p></div>`;
+        }
+
+        function getMockDocument(filename) {
+            return mockDocuments.find(document => document.name === filename);
+        }
+
+        function openDocument(filename) {
+            const doc = getMockDocument(filename);
+            if (!doc) return;
+            selectedDocumentName = filename;
+            window.document.getElementById("detailStatus").textContent = displayStatus(doc.status);
+            window.document.getElementById("detailPane").innerHTML = `
+                <div class="form-grid">
+                    <div class="document-title-cell">${fileIcon(doc.type)}<div><div class="item-title">${escapeHtml(doc.title)}</div><div class="item-meta">${escapeHtml(doc.category)} - ${formatDate(doc.date)} - ${escapeHtml(doc.size_label)}</div></div></div>
+                    ${documentPreviewHtml(doc)}
+                    <div class="action-row"><button class="secondary" onclick="downloadMockDocument('${escapeJs(doc.name)}')">${icon("download")} ${doc.isDemo ? "Exporter la fiche" : "Telecharger l'original"}</button>${canManageDocuments() ? `<button class="secondary" onclick="deleteDocument('${escapeJs(doc.name)}')">${icon("trash")} Supprimer</button>` : ""}</div>
+                    ${canManageDocuments() ? `<form class="form-grid" onsubmit="saveMetadata(event)">
+                        <div class="field"><label>Titre</label><input id="metaTitle" value="${escapeAttribute(doc.title)}"></div>
+                        <div class="field"><label>Auteur</label><input id="metaAuthor" value="${escapeAttribute(doc.author)}"></div>
+                        <div class="field"><label>Categorie</label><input id="metaCategory" value="${escapeAttribute(doc.category)}"></div>
+                        <div class="field"><label>Statut</label><select id="metaStatus">${["Disponible", "En attente", "En revue", "Valide", "Archivé", "Rejete"].map(status => `<option value="${status}" ${doc.status === status ? "selected" : ""}>${displayStatus(status)}</option>`).join("")}</select></div>
+                        <div class="field"><label>Description</label><textarea id="metaDescription">${escapeHtml(doc.description)}</textarea></div>
+                        <div class="field"><label>Mots-cles</label><input id="metaTags" value="${escapeAttribute(doc.tags.join(", "))}"></div>
+                        <button type="submit">Enregistrer</button><div class="item-meta" id="metadataSaveState"></div>
+                    </form>
+                    <div><h2>Workflow</h2><div class="action-row">${["En attente", "En revue", "Valide", "Archivé"].map(status => `<button class="secondary" onclick="transitionWorkflow('${status}')">${displayStatus(status)}</button>`).join("")}</div></div>` : '<div class="demo-notice">Vous consultez ce document avec un profil employe. Les metadonnees et le workflow sont geres par les responsables documentaires.</div>'}
+                </div>`;
+        }
+
+        function saveMetadata(event) {
+            event.preventDefault();
+            if (!canManageDocuments()) return;
+            const doc = getMockDocument(selectedDocumentName);
+            if (!doc) return;
+            doc.title = window.document.getElementById("metaTitle").value.trim() || doc.title;
+            doc.author = window.document.getElementById("metaAuthor").value.trim() || "Non renseigne";
+            doc.category = window.document.getElementById("metaCategory").value.trim() || "Non classe";
+            doc.status = window.document.getElementById("metaStatus").value;
+            doc.description = window.document.getElementById("metaDescription").value.trim();
+            doc.tags = window.document.getElementById("metaTags").value.split(",").map(tag => tag.trim()).filter(Boolean);
+            doc.modified_at = new Date().toISOString();
+            addActivity("edit", "a modifie", doc.title);
+            window.document.getElementById("metadataSaveState").textContent = "Modifications enregistrees.";
+            loadCategories(); loadDocuments(currentPage); loadDashboard(); openDocument(doc.name);
+        }
+
+        function transitionWorkflow(status) {
+            if (!canManageDocuments()) return;
+            const doc = getMockDocument(selectedDocumentName);
+            if (!doc) return;
+            doc.status = status;
+            doc.modified_at = new Date().toISOString();
+            addActivity(status === "Valide" ? "validate" : status === "Archivé" ? "archive" : "review", `a passe en ${displayStatus(status)}`, doc.title);
+            loadDocuments(currentPage); loadDashboard(); openDocument(doc.name);
+        }
+
+        function deleteDocument(filename) {
+            if (!canManageDocuments()) return;
+            const doc = getMockDocument(filename);
+            if (!doc || !confirm("Placer ce document dans la corbeille ?")) return;
+            doc.deleted = true;
+            doc.deleted_at = new Date().toISOString();
+            doc.deleted_by = localStorage.getItem("gedUserName") || "Administrateur GED";
+            addActivity("archive", "a place dans la corbeille", doc.title);
+            loadDocuments(currentPage); loadDashboard(); renderAdminDocuments();
+            window.document.getElementById("detailPane").innerHTML = '<div class="empty">Document place dans la corbeille.</div>';
+        }
+
+        function downloadMockDocument(filename) {
+            const doc = getMockDocument(filename);
+            if (!doc) return;
+            if (!doc.isDemo && doc.file) {
+                const original = window.document.createElement("a");
+                original.href = URL.createObjectURL(doc.file);
+                original.download = doc.file.name;
+                original.click();
+                window.setTimeout(() => URL.revokeObjectURL(original.href), 0);
+                return;
+            }
+            const content = `${doc.title}\n\n${doc.description}\n\n${doc.excerpt}`;
+            const link = window.document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([content], { type: "text/plain" }));
+            link.download = `${doc.title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}_apercu.txt`;
+            link.click();
+            window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+        }
+
+        function addFiles(files) {
+            const incoming = Array.from(files);
+            rejectedFiles = incoming.filter(file => !acceptedExtensions.some(extension => file.name.toLowerCase().endsWith(extension)));
+            selectedFiles = [...selectedFiles, ...incoming.filter(file => !rejectedFiles.includes(file))];
+            selectedFiles = selectedFiles.filter((file, index, list) => list.findIndex(item => item.name === file.name && item.size === file.size) === index);
+            renderSelectedFiles();
+        }
+
+        function renderSelectedFiles() {
+            uploadBtn.disabled = selectedFiles.length === 0;
+            const ready = selectedFiles.map(file => `<div class="list-item"><div class="document-title-cell">${fileIcon(file.name.split(".").pop().toUpperCase())}<div><div class="item-title">${escapeHtml(file.name)}</div><div class="item-meta">${formatBytes(file.size)}</div></div></div><span class="badge success">Pret</span></div>`);
+            const rejected = rejectedFiles.map(file => `<div class="list-item"><div><div class="item-title">${escapeHtml(file.name)}</div><div class="item-meta">PDF, DOCX et TXT uniquement</div></div><span class="badge danger">Erreur</span></div>`);
+            fileList.innerHTML = [...ready, ...rejected].join("") || '<div class="empty">Aucun fichier selectionne.</div>';
+        }
+
+        function clearSelectedFiles() {
+            selectedFiles = []; rejectedFiles = []; fileInput.value = ""; renderSelectedFiles();
+        }
+
+        function uploadSelectedFiles() {
+            if (!selectedFiles.length) return;
+            uploadBtn.disabled = true;
+            window.setTimeout(() => {
+                selectedFiles.forEach(file => {
+                    const extension = file.name.split(".").pop().toUpperCase();
+                    const title = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
+                    mockDocuments.unshift({ name: file.name, title, category: "Non classe", author: localStorage.getItem("gedUserName") || "Utilisateur INRH", date: new Date().toISOString(), modified_at: new Date().toISOString(), status: "En attente", type: extension, size_label: formatBytes(file.size), size_bytes: file.size, tags: [], description: "Document original importe depuis la bibliotheque.", excerpt: "Le contenu sera disponible apres traitement documentaire.", file, isDemo: false });
+                    addActivity("upload", "a importe", title);
+                });
+                clearSelectedFiles(); loadCategories(); loadDocuments(1); loadDashboard();
+            }, 350);
+        }
+
+        function searchDocuments(query) {
+            const normalized = normalizeText(query);
+            const themes = [
+                { words: ["aquaculture", "elevage", "marine"], category: "Aquaculture" },
+                { words: ["sardine", "peche", "halieutique", "cotiere", "ressource"], category: "Ressources" },
+                { words: ["securite", "laboratoire", "epi", "chimique", "risque"], category: "Securite" },
+                { words: ["qualite", "echantillon", "adn", "eau", "donnees"], category: "Qualite" },
+                { words: ["fao", "partenariat", "cooperation"], category: "Partenariats" }
+            ];
+            const matchingTheme = themes.find(theme => theme.words.some(word => normalized.includes(word)));
+            return mockDocuments.filter(document => !document.deleted).map(document => {
+                const content = normalizeText([document.title, document.category, document.author, document.tags.join(" "), document.description, document.excerpt].join(" "));
+                const direct = normalized.split(/\s+/).filter(word => word.length > 2 && content.includes(word)).length;
+                const thematic = matchingTheme?.category === document.category ? 3 : 0;
+                return { ...document, score: Math.min(0.97, 0.44 + direct * 0.11 + thematic * 0.09) };
+            }).filter(document => document.score >= 0.55).sort((a, b) => b.score - a.score).slice(0, 6);
+        }
+
+        function doSearch() {
+            const query = document.getElementById("query").value.trim();
+            if (!query) return;
+            const target = document.getElementById("results");
+            const button = document.getElementById("searchBtn");
+            button.disabled = true;
+            target.innerHTML = '<div class="skeleton" style="height:88px"></div><div class="skeleton" style="height:88px;margin-top:10px"></div>';
+            window.setTimeout(() => {
+                const results = searchDocuments(query);
+                document.getElementById("resultsTitle").textContent = `${results.length} resultat(s)`;
+                renderSearchResults(results, query);
+                button.disabled = false;
+            }, 220);
+        }
+
+        function highlightExcerpt(text, query) {
+            let output = escapeHtml(text);
+            normalizeText(query).split(/\s+/).filter(word => word.length > 2).forEach(word => {
+                const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                output = output.replace(new RegExp(`(${escaped})`, "ig"), "<mark>$1</mark>");
+            });
+            return output;
+        }
+
+        function renderSearchResults(results, query = "") {
+            document.getElementById("results").innerHTML = results.length ? results.map(result => `<article class="result-card"><div class="document-title-cell">${fileIcon(result.type)}<div><button class="result-title" onclick="openSearchPreview('${escapeJs(result.name)}')">${escapeHtml(result.title)}</button><div class="item-meta">${escapeHtml(result.category)} - ${formatDate(result.date)} - <span class="score-pill">${Math.round(result.score * 100)}% pertinent</span></div></div></div><p class="result-excerpt">${highlightExcerpt(result.excerpt, query)}</p><button class="secondary" onclick="openSearchPreview('${escapeJs(result.name)}')">${icon("eye")} Consulter l'apercu</button></article>`).join("") : '<div class="empty-state"><strong>Aucun resultat pertinent.</strong><span>Essayez un autre sujet ou une autre formulation.</span></div>';
+        }
+
+        function openSearchPreview(filename) {
+            const doc = getMockDocument(filename);
+            if (!doc) return;
+            document.getElementById("searchPreviewTitle").textContent = doc.title;
+            document.getElementById("searchPreviewContent").innerHTML = `<div class="document-title-cell">${fileIcon(doc.type)}<div><div class="item-title">${escapeHtml(doc.title)}</div><div class="item-meta">${escapeHtml(doc.category)} - ${escapeHtml(doc.author)} - ${formatDate(doc.date)}</div></div></div><div style="margin-top:16px;">${documentPreviewHtml(doc)}</div><div class="action-row" style="margin-top:16px;"><button class="secondary" onclick="downloadMockDocument('${escapeJs(doc.name)}')">${icon("download")} ${doc.isDemo ? "Exporter la fiche" : "Telecharger l'original"}</button><button onclick="closeSearchPreview(); showPage('documents'); openDocument('${escapeJs(doc.name)}')">Ouvrir la fiche complete</button></div>`;
+            document.getElementById("searchPreviewModal").hidden = false;
+        }
+
+        function closeSearchPreview() {
+            document.getElementById("searchPreviewModal").hidden = true;
+        }
+
+        function assistantAnswer(question) {
+            const results = searchDocuments(question);
+            const value = normalizeText(question);
+            if (value.includes("securite") || value.includes("laboratoire")) return { answer: "Les consignes principales portent sur le port des EPI, la consignation immediate des incidents et le respect des procedures de stockage des produits chimiques.", sources: results.filter(result => result.category === "Securite").slice(0, 2) };
+            if (value.includes("aquaculture")) return { answer: "Le rapport annuel confirme une progression des rendements sur les sites pilotes. Il recommande de poursuivre le suivi des indicateurs de croissance et des conditions environnementales en 2026.", sources: results.filter(result => result.category === "Aquaculture").slice(0, 2) };
+            if (value.includes("sardine") || value.includes("peche")) return { answer: "Les donnees disponibles indiquent une stabilite relative du stock de sardine, avec des variations regionales. Les campagnes de terrain et les indices acoustiques restent les principales sources de suivi.", sources: results.filter(result => result.category === "Ressources").slice(0, 2) };
+            return { answer: results.length ? `J'ai identifie ${results.length} document(s) pertinent(s). Les passages les plus utiles sont cites dans le panneau Sources.` : "Je n'ai pas trouve de passage suffisamment pertinent dans la bibliotheque actuelle.", sources: results.slice(0, 3) };
+        }
+
+        function askAssistant() {
+            const input = document.getElementById("assistantQuestion");
+            const question = input.value.trim();
+            if (!question) return;
+            input.value = ""; appendMessage("user", question); appendMessage("assistant", "Je consulte les documents pertinents...");
+            document.getElementById("assistantBtn").disabled = true;
+            window.setTimeout(() => {
+                const response = assistantAnswer(question);
+                replaceLastAssistantMessage(response.answer); renderAssistantSources(response.sources);
+                document.getElementById("assistantBtn").disabled = false;
+            }, 340);
+        }
+
+        function renderAssistantSources(sources) {
+            const target = document.getElementById("assistantSources");
+            target.innerHTML = sources.length ? sources.map(source => `<div class="list-item"><div><div class="item-title">${escapeHtml(source.title)}</div><div class="item-meta">${escapeHtml(source.excerpt)}</div></div><button class="secondary" title="Voir le document" onclick="openSearchPreview('${escapeJs(source.name)}')">${icon("eye")}</button></div>`).join("") : '<div class="empty">Aucune source citee.</div>';
+        }
+
+        function renderAssistantExamples() {
+            const messages = document.getElementById("assistantMessages");
+            messages.innerHTML = '<div class="message assistant">Bonjour. Je peux retrouver, resumer et expliquer les documents de la bibliotheque.</div><div class="message user">Quelles sont les procedures de securite en laboratoire ?</div><div class="message assistant">Les procedures imposent le port des EPI, la consignation des incidents et le respect des regles de stockage. Les sources utilisees sont affichees a droite.</div>';
+            renderAssistantSources(searchDocuments("securite laboratoire").slice(0, 2));
+        }
+
+        function displayStatus(status) {
+            const value = normalizeText(status);
+            if (value.includes("archive")) return "Archive";
+            if (value.includes("rejete")) return "Rejete";
+            if (value.includes("attente")) return "En attente";
+            if (value.includes("revue")) return "En revue";
+            if (value.includes("valide") || value.includes("approuve")) return "Valide";
+            if (value.includes("index") || value.includes("disponible")) return "Disponible";
+            return status || "Disponible";
+        }
+
+        function statusTone(status) {
+            const value = normalizeText(status);
+            if (value.includes("rejete")) return "danger";
+            if (value.includes("archive")) return "archive";
+            if (value.includes("attente") || value.includes("revue") || value.includes("validation") || value.includes("brouillon")) return "warning";
+            return "success";
+        }
+
         dropzone.addEventListener("click", () => fileInput.click());
         dropzone.addEventListener("keydown", event => {
             if (event.key === "Enter" || event.key === " ") fileInput.click();
@@ -1662,12 +2309,14 @@
             if (event.key === "Enter") askAssistant();
         });
 
-        ensureSession().finally(() => {
-            hydrateSessionUi();
-            renderSelectedFiles();
-            loadCategories();
-            loadDashboard();
-            loadDocuments(1);
+        ensureSession().then(authenticated => {
+            hydrateIcons();
+            if (authenticated) {
+                initializeWorkspace();
+            } else {
+                document.getElementById("loginScreen").hidden = false;
+                document.getElementById("loginEmail").focus();
+            }
         });
     </script>
 </body>
